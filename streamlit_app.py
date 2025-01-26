@@ -129,6 +129,9 @@ def create_tooltip(label, explanation):
     </div>
     """
 
+def update_session_state(field_name, value):
+    st.session_state[field_name] = value
+
 @st.cache_resource
 def cargar_modelos(tipo_propiedad):
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
@@ -311,6 +314,9 @@ st.markdown("""
    </div>
 """, unsafe_allow_html=True)
 
+def update_session_state(field_name, value):
+    st.session_state[field_name] = value
+
 # Step 1: Property Details
 if st.session_state.step == 1:
     st.subheader("Detalles de la Propiedad")
@@ -324,9 +330,12 @@ if st.session_state.step == 1:
         tipo_propiedad = st.selectbox(
             "Tipo de Propiedad",
             options=["Casa", "Departamento"],
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('tipo_propiedad', st.session_state.get('_tipo_propiedad', 'Casa')),
+            key="_tipo_propiedad"
         )
-        if tipo_propiedad != st.session_state.get('tipo_propiedad'):
+        if tipo_propiedad:
             st.session_state.tipo_propiedad = tipo_propiedad
             logger.debug(f"Updated tipo_propiedad to: {tipo_propiedad}")
             
@@ -341,7 +350,10 @@ if st.session_state.step == 1:
         direccion = st.text_input(
             "Dirección",
             placeholder="Calle Principal 123, Ciudad de México",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('entrada_direccion', st.session_state.get('_entrada_direccion', '')),
+            key="_entrada_direccion"
         )
         
         if len(direccion) >= 3 and direccion != st.session_state.get('last_input', ''):
@@ -354,7 +366,10 @@ if st.session_state.step == 1:
             direccion_seleccionada = st.selectbox(
                 "Sugerencias de direcciones",
                 options=st.session_state.sugerencias,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                on_change=update_session_state,
+                args=('direccion_seleccionada', st.session_state.get('_direccion_seleccionada', '')),
+                key="_direccion_seleccionada"
             )
             if direccion_seleccionada:
                 st.session_state.direccion_seleccionada = direccion_seleccionada
@@ -382,9 +397,14 @@ if st.session_state.step == 1:
             min_value=0,
             step=1,
             value=int(st.session_state.get('terreno', 0)),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('terreno', st.session_state.get('_terreno', 0)),
+            key="_terreno"
         )
-        st.session_state.terreno = terreno
+        if terreno:
+            st.session_state.terreno = terreno
+            logger.debug(f"Updated terreno to: {terreno}")
 
     with col2:
         st.markdown(create_tooltip("Construcción (m²)", 
@@ -395,9 +415,14 @@ if st.session_state.step == 1:
             min_value=0,
             step=1,
             value=int(st.session_state.get('construccion', 0)),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('construccion', st.session_state.get('_construccion', 0)),
+            key="_construccion"
         )
-        st.session_state.construccion = construccion
+        if construccion:
+            st.session_state.construccion = construccion
+            logger.debug(f"Updated construccion to: {construccion}")
 
     with col3:
         st.markdown(create_tooltip("Habitaciones", 
@@ -408,9 +433,14 @@ if st.session_state.step == 1:
             min_value=0,
             step=1,
             value=int(st.session_state.get('habitaciones', 0)),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('habitaciones', st.session_state.get('_habitaciones', 0)),
+            key="_habitaciones"
         )
-        st.session_state.habitaciones = habitaciones
+        if habitaciones:
+            st.session_state.habitaciones = habitaciones
+            logger.debug(f"Updated habitaciones to: {habitaciones}")
 
     with col4:
         st.markdown(create_tooltip("Baños", 
@@ -422,9 +452,14 @@ if st.session_state.step == 1:
             max_value=10.0,
             step=0.5,
             value=float(st.session_state.get('banos', 0.0)),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=update_session_state,
+            args=('banos', st.session_state.get('_banos', 0.0)),
+            key="_banos"
         )
-        st.session_state.banos = banos
+        if banos:
+            st.session_state.banos = banos
+            logger.debug(f"Updated banos to: {banos}")
 
     logger.debug("=== STEP 1 VALUES BEING SET ===")
     logger.debug(f"Tipo de propiedad: {st.session_state.tipo_propiedad}")
@@ -450,87 +485,125 @@ if st.session_state.step == 1:
 
 # Step 2: Contact Information
 elif st.session_state.step == 2:
-   st.subheader("Información de Contacto")
-   
-   col1, col2 = st.columns(2)
-   with col1:
-       st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
-       nombre = st.text_input(
-           "Nombre", 
-           placeholder="Ingrese su nombre", 
-           value=st.session_state.get('nombre', ''),
-           label_visibility="collapsed"
-       )
-       st.session_state.nombre = nombre
+  st.subheader("Información de Contacto")
+  
+  col1, col2 = st.columns(2)
+  with col1:
+      st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
+      nombre = st.text_input(
+          "Nombre", 
+          placeholder="Ingrese su nombre", 
+          value=st.session_state.get('nombre', ''),
+          label_visibility="collapsed",
+          on_change=update_session_state,
+          args=('nombre', st.session_state.get('_nombre', '')),
+          key="_nombre"
+      )
+      if nombre:
+          st.session_state.nombre = nombre
+          logger.debug(f"Updated nombre to: {nombre}")
 
-   with col2:
-       st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
-       apellido = st.text_input(
-           "Apellido", 
-           placeholder="Ingrese su apellido",
-           value=st.session_state.get('apellido', ''),
-           label_visibility="collapsed"
-       )
-       st.session_state.apellido = apellido
+  with col2:
+      st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
+      apellido = st.text_input(
+          "Apellido", 
+          placeholder="Ingrese su apellido",
+          value=st.session_state.get('apellido', ''),
+          label_visibility="collapsed",
+          on_change=update_session_state,
+          args=('apellido', st.session_state.get('_apellido', '')),
+          key="_apellido"
+      )
+      if apellido:
+          st.session_state.apellido = apellido
+          logger.debug(f"Updated apellido to: {apellido}")
 
-   col1, col2 = st.columns(2)
-   with col1:
-       st.markdown(create_tooltip("Correo Electrónico", 
-                                "Ingrese su dirección de correo electrónico."), 
-                  unsafe_allow_html=True)
-       correo = st.text_input(
-           "Correo", 
-           placeholder="usuario@ejemplo.com",
-           value=st.session_state.get('correo', ''),
-           label_visibility="collapsed"
-       )
-       st.session_state.correo = correo
+  col1, col2 = st.columns(2)
+  with col1:
+      st.markdown(create_tooltip("Correo Electrónico", 
+                               "Ingrese su dirección de correo electrónico."), 
+                 unsafe_allow_html=True)
+      correo = st.text_input(
+          "Correo", 
+          placeholder="usuario@ejemplo.com",
+          value=st.session_state.get('correo', ''),
+          label_visibility="collapsed",
+          on_change=update_session_state,
+          args=('correo', st.session_state.get('_correo', '')),
+          key="_correo"
+      )
+      if correo:
+          st.session_state.correo = correo
+          logger.debug(f"Updated correo to: {correo}")
 
-   with col2:
-       st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
-                  unsafe_allow_html=True)
-       telefono = st.text_input(
-           "Teléfono", 
-           placeholder="9214447277",
-           value=st.session_state.get('telefono', ''),
-           label_visibility="collapsed"
-       )
-       st.session_state.telefono = telefono
+  with col2:
+      st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
+                 unsafe_allow_html=True)
+      telefono = st.text_input(
+          "Teléfono", 
+          placeholder="9214447277",
+          value=st.session_state.get('telefono', ''),
+          label_visibility="collapsed",
+          on_change=update_session_state,
+          args=('telefono', st.session_state.get('_telefono', '')),
+          key="_telefono"
+      )
+      if telefono:
+          st.session_state.telefono = telefono
+          logger.debug(f"Updated telefono to: {telefono}")
 
-   st.subheader("Nivel de Interés")
-   interes_options = [
-       "Solo estoy explorando el valor de mi propiedad por curiosidad.",
-       "Podría considerar vender/alquilar en el futuro.",
-       "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
-       "Estoy buscando activamente vender/alquilar mi propiedad.",
-       "Necesito vender/alquilar mi propiedad lo antes posible."
-   ]
-   
-   interes_index = 0
-   if st.session_state.get('interes_venta') in interes_options:
-       interes_index = interes_options.index(st.session_state.interes_venta)
-   
-   interes_venta = st.radio(
-       "",
-       options=interes_options,
-       index=interes_index,
-       label_visibility="collapsed"
-   )
-   st.session_state.interes_venta = interes_venta
+  st.subheader("Nivel de Interés")
+  interes_options = [
+      "Solo estoy explorando el valor de mi propiedad por curiosidad.",
+      "Podría considerar vender/alquilar en el futuro.",
+      "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
+      "Estoy buscando activamente vender/alquilar mi propiedad.",
+      "Necesito vender/alquilar mi propiedad lo antes posible."
+  ]
+  
+  interes_index = 0
+  if st.session_state.get('interes_venta') in interes_options:
+      interes_index = interes_options.index(st.session_state.interes_venta)
+  
+  interes_venta = st.radio(
+      "",
+      options=interes_options,
+      index=interes_index,
+      label_visibility="collapsed",
+      on_change=update_session_state,
+      args=('interes_venta', st.session_state.get('_interes_venta', interes_options[0])),
+      key="_interes_venta"
+  )
+  if interes_venta:
+      st.session_state.interes_venta = interes_venta
+      logger.debug(f"Updated interes_venta to: {interes_venta}")
 
-   texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
-   if st.button(texto_boton, type="primary"):
-       if not nombre or not apellido:
-           st.error("Por favor, ingrese su nombre y apellido.")
-       elif not validar_correo(correo):
-           st.error("Por favor, ingrese una dirección de correo electrónico válida.")
-       elif not validar_telefono(telefono):
-           st.error("Por favor, ingrese un número de teléfono válido.")
-       elif not interes_venta:
-           st.error("Por favor, seleccione su nivel de interés.")
-       else:
-           st.session_state.step = 3
-           st.rerun()
+  logger.debug("=== STEP 2 VALUES BEING SET ===")
+  logger.debug(f"Nombre: {st.session_state.nombre}")
+  logger.debug(f"Apellido: {st.session_state.apellido}")
+  logger.debug(f"Correo: {st.session_state.correo}")
+  logger.debug(f"Telefono: {st.session_state.telefono}")
+  logger.debug(f"Interes venta: {st.session_state.interes_venta}")
+  logger.debug(f"Property values still preserved:")
+  logger.debug(f"Tipo de propiedad: {st.session_state.tipo_propiedad}")
+  logger.debug(f"Terreno: {st.session_state.terreno}")
+  logger.debug(f"Construccion: {st.session_state.construccion}")
+  logger.debug(f"Habitaciones: {st.session_state.habitaciones}")
+  logger.debug(f"Baños: {st.session_state.banos}")
+
+  texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
+  if st.button(texto_boton, type="primary"):
+      if not nombre or not apellido:
+          st.error("Por favor, ingrese su nombre y apellido.")
+      elif not validar_correo(correo):
+          st.error("Por favor, ingrese una dirección de correo electrónico válida.")
+      elif not validar_telefono(telefono):
+          st.error("Por favor, ingrese un número de teléfono válido.")
+      elif not interes_venta:
+          st.error("Por favor, seleccione su nivel de interés.")
+      else:
+          st.session_state.step = 3
+          st.rerun()
 
 # Step 3: Results
 elif st.session_state.step == 3:
