@@ -337,26 +337,27 @@ if st.session_state.step == 1:
                 label_visibility="collapsed"
             )
             if direccion_seleccionada:
-                latitud, longitud, ubicacion = geocodificar_direccion(direccion_seleccionada)
-                if latitud and longitud:
-                    st.session_state.latitud = latitud
-                    st.session_state.longitud = longitud
-                    st.session_state.direccion_seleccionada = direccion_seleccionada
-                    
-                    st.success(f"Ubicación encontrada: {direccion_seleccionada}")
-                    
-                    map_col1, map_col2, map_col3 = st.columns([1, 2, 1])
-                    with map_col1:
-                        if st.button("Mostrar/Ocultar Mapa"):
-                            st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
-                    
-                    if st.session_state.get('mostrar_mapa', False):
-                        with map_col1:
-                            m = folium.Map(location=[latitud, longitud], zoom_start=15, width=300, height=200)
-                            folium.Marker([latitud, longitud], popup=direccion_seleccionada).add_to(m)
-                            folium_static(m)
-                else:
-                    st.error("No se pudo geocodificar la dirección seleccionada.")
+                st.session_state.direccion_seleccionada = direccion_seleccionada
+
+    # Geocodificación y mapa (outside of columns)
+    if st.session_state.get('direccion_seleccionada'):
+        latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
+        if latitud and longitud:
+            st.session_state.latitud = latitud
+            st.session_state.longitud = longitud
+            st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
+            
+            left_col, right_col = st.columns([1, 3])
+            with left_col:
+                if st.button("Mostrar/Ocultar Mapa"):
+                    st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
+                
+                if st.session_state.get('mostrar_mapa', False):
+                    m = folium.Map(location=[latitud, longitud], zoom_start=15, width=300, height=200)
+                    folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
+                    folium_static(m)
+        else:
+            st.error("No se pudo geocodificar la dirección seleccionada.")
 
     # Property details
     st.subheader("Características de la Propiedad")
