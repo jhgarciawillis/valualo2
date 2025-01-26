@@ -7,8 +7,6 @@ import math
 import plotly.graph_objects as go
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
-import folium
-from streamlit_folium import folium_static
 import re
 import logging
 from google.oauth2 import service_account
@@ -348,7 +346,7 @@ if st.session_state.step == 1:
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
-    
+            
     # Property details
     st.subheader("Características de la Propiedad")
     col1, col2, col3, col4 = st.columns(4)
