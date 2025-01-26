@@ -339,17 +339,13 @@ if st.session_state.step == 1:
             if direccion_seleccionada:
                 st.session_state.direccion_seleccionada = direccion_seleccionada
 
-    # Geocodificación y mapa
+    # Geocodificación (sin mapa)
     if st.session_state.get('direccion_seleccionada'):
         latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
         if latitud and longitud:
             st.session_state.latitud = latitud
             st.session_state.longitud = longitud
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
-            
-            m = folium.Map(location=[latitud, longitud], zoom_start=15)
-            folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
-            folium_static(m)
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
     
