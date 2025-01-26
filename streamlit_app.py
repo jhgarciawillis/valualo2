@@ -141,8 +141,10 @@ def cargar_modelos(tipo_propiedad):
     try:
         for nombre_modelo, nombre_archivo in modelos_requeridos.items():
             ruta_archivo = os.path.join(directorio_actual, f"{prefijo}{nombre_archivo}")
+            logger.debug(f"Intentando cargar archivo: {ruta_archivo}")  # Added logging
             if os.path.exists(ruta_archivo):
                 modelos[nombre_modelo] = joblib.load(ruta_archivo)
+                logger.debug(f"Archivo cargado exitosamente: {ruta_archivo}")  # Added logging
             else:
                 logger.error(f"Archivo de modelo no encontrado: {ruta_archivo}")
                 raise FileNotFoundError(f"Archivo de modelo no encontrado: {ruta_archivo}")
