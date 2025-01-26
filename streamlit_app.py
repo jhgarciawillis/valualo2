@@ -29,101 +29,99 @@ st.set_page_config(page_title="Estimador de Valor de Propiedades", layout="wide"
 PRIMARY_COLOR = "#1f77b4"  # Blue
 SECONDARY_COLOR = "#2ca02c"  # Green
 
-# Enhanced autofill detection JavaScript
+// Enhanced autofill detector
 autofill_detector = """
 <script>
 function setupAutofillListener() {
-    // Debug flag
     const debug = true;
     
     function debugLog(message) {
         if (debug) console.log('[Autofill Debug]:', message);
     }
 
-    function notifyStreamlit(input, value) {
-        debugLog(`Notifying Streamlit of value change: ${input.name} = ${value}`);
+    function handleValueChange(input, newValue) {
+        debugLog(`Value change detected in ${input.name}: ${input.value} -> ${newValue}`);
+        input.value = newValue;
+        
+        // Notify Streamlit
         window.parent.postMessage({
             type: 'streamlit:setComponentValue',
-            value: value,
+            value: newValue,
             dataType: 'str'
         }, '*');
         
-        // Trigger change event
-        const event = new Event('change', { bubbles: true });
-        input.dispatchEvent(event);
+        // Force change event
+        input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     function monitorInput(input) {
-        debugLog(`Setting up monitors for input: ${input.name}`);
-        
-        // Store initial value
+        debugLog(`Setting up monitor for: ${input.name}`);
         let lastValue = input.value;
-        
-        // Monitor for Chrome/Safari autofill
-        input.addEventListener('animationstart', (e) => {
-            if (e.animationName.includes('autofill') || e.animationName === 'onAutoFillStart') {
-                debugLog(`Autofill animation detected on: ${input.name}`);
-                if (input.value !== lastValue) {
-                    notifyStreamlit(input, input.value);
-                    lastValue = input.value;
-                }
+        let lastLength = input.value.length;
+
+        // Watch for rapid value changes (typical in autofill)
+        const observer = new MutationObserver((mutations) => {
+            if (input.value !== lastValue) {
+                debugLog(`Mutation observed: ${lastValue} -> ${input.value}`);
+                handleValueChange(input, input.value);
+                lastValue = input.value;
             }
         });
 
-        // Monitor for Firefox autofill
+        observer.observe(input, {
+            attributes: true,
+            characterData: true,
+            subtree: true
+        });
+
+        // Monitor for instant changes
         input.addEventListener('input', (e) => {
-            debugLog(`Input event on: ${input.name}`);
             if (input.value !== lastValue) {
-                notifyStreamlit(input, input.value);
+                // Check if length changed significantly (autofill characteristic)
+                if (Math.abs(input.value.length - lastLength) > 2) {
+                    debugLog(`Possible autofill detected - length change: ${lastLength} -> ${input.value.length}`);
+                }
+                handleValueChange(input, input.value);
                 lastValue = input.value;
+                lastLength = input.value.length;
             }
         });
 
-        // Monitor for Edge/IE autofill
-        input.addEventListener('change', (e) => {
-            debugLog(`Change event on: ${input.name}`);
-            if (input.value !== lastValue) {
-                notifyStreamlit(input, input.value);
-                lastValue = input.value;
-            }
-        });
-
-        // Additional check for delayed autofill
-        setTimeout(() => {
-            if (input.value && input.value !== lastValue) {
-                debugLog(`Delayed autofill detected on: ${input.name}`);
-                notifyStreamlit(input, input.value);
-                lastValue = input.value;
-            }
-        }, 100);
-    }
-
-    // Monitor DOM changes for dynamically added inputs
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.addedNodes) {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.tagName === 'INPUT') {
-                        monitorInput(node);
+        // Additional Chrome/Safari autofill detection
+        input.addEventListener('animationstart', (e) => {
+            if (e.animationName === 'onAutoFillStart') {
+                debugLog(`Autofill animation detected on: ${input.name}`);
+                setTimeout(() => {
+                    if (input.value !== lastValue) {
+                        handleValueChange(input, input.value);
+                        lastValue = input.value;
                     }
-                });
+                }, 50);
             }
         });
-    });
+    }
 
     // Setup initial inputs
     document.querySelectorAll('input').forEach(monitorInput);
 
-    // Watch for new inputs
+    // Monitor for dynamically added inputs
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.tagName === 'INPUT') {
+                    monitorInput(node);
+                }
+            });
+        });
+    });
+
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
-
-    debugLog('Autofill listener setup complete');
 }
 
-// Setup on DOM ready
+// Initialize on page load
 if (document.readyState === 'complete') {
     setupAutofillListener();
 } else {
@@ -132,31 +130,8 @@ if (document.readyState === 'complete') {
 </script>
 
 <style>
-/* Chrome/Safari autofill detection */
-@keyframes onAutoFillStart {
-    from { background-color: transparent; }
-    to { background-color: transparent; }
-}
-
-@keyframes onAutoFillCancel {
-    from { background-color: transparent; }
-    to { background-color: transparent; }
-}
-
-input:-webkit-autofill {
-    animation-name: onAutoFillStart;
-    animation-duration: 1ms;
-}
-
-input:not(:-webkit-autofill) {
-    animation-name: onAutoFillCancel;
-    animation-duration: 1ms;
-}
-
-/* Firefox autofill styles */
-input:-moz-autofill {
-    background-color: transparent !important;
-}
+@keyframes onAutoFillStart { from {} to {} }
+input:-webkit-autofill { animation-name: onAutoFillStart; }
 </style>
 """
 
@@ -506,20 +481,20 @@ if st.session_state.step == 1:
     
     with col1:
         st.markdown(create_tooltip("Tipo de Propiedad", 
-                                 "Seleccione si es una casa en venta o un departamento en alquiler."), 
-                   unsafe_allow_html=True)
-        tipo_propiedad = text_input_with_autofill(
+                                "Seleccione si es una casa en venta o un departamento en alquiler."), 
+                unsafe_allow_html=True)
+        tipo_propiedad = st.selectbox(
             "Tipo de Propiedad",
-            key="_tipo_propiedad",
-            placeholder="Casa"
+            options=["Casa", "Departamento"],
+            index=0 if st.session_state.tipo_propiedad == "Casa" else 1,
+            label_visibility="collapsed"
         )
-        if not tipo_propiedad:
-            tipo_propiedad = "Casa"
-        st.session_state.tipo_propiedad = tipo_propiedad
-        logger.debug(f"Tipo de propiedad seleccionado: {st.session_state.tipo_propiedad}")
+        if tipo_propiedad != st.session_state.tipo_propiedad:
+            st.session_state.tipo_propiedad = tipo_propiedad
+            logger.debug(f"Tipo de propiedad seleccionado: {st.session_state.tipo_propiedad}")
             
-        modelos = cargar_modelos(st.session_state.tipo_propiedad)
-    
+    modelos = cargar_modelos(st.session_state.tipo_propiedad)
+
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
                                  "Ingrese la dirección completa de la propiedad."), 
