@@ -262,8 +262,9 @@ st.markdown("""
     <div style='background-color: #f0f2f6; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
         <h4 style='margin: 0; color: #262730;'>¡Bienvenido a nuestra herramienta gratuita de estimación!</h4>
         <p style='margin: 10px 0 0 0; color: #262730;'>
-            Esta herramienta le permite obtener una estimación instantánea y gratuita del valor de su propiedad. 
-            Para obtener el mejor resultado, por favor complete todos los campos solicitados.
+            Esta herramienta le permite obtener una estimación instantánea y gratuita del valor de su propiedad.<br><br>
+            La estimación está basada en los datos de miles de propiedades de todo México.<br><br>
+            Favor de llenar todos los campos solicitados para obtener el estimado del valor de la propiedad.
         </p>
     </div>
 """, unsafe_allow_html=True)
