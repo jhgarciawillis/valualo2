@@ -225,16 +225,19 @@ def predecir_precio(datos_procesados, modelos):
         precio_bruto = modelos['modelo'].predict(datos_procesados)[0]
         logger.debug(f"Precio bruto predicho: {precio_bruto}")
         
-        if st.session_state.tipo_propiedad == "Casa":
-            precio_redondeado = math.floor(precio_bruto / 1000) * 1000
-        else:  # Departamento
-            precio_redondeado = math.floor(precio_bruto / 100) * 100
-            
+        # Apply 63% adjustment to the raw prediction
+        precio_ajustado = precio_bruto * 0.63
+        logger.debug(f"Precio ajustado (63%): {precio_ajustado}")
+        
+        # Round the adjusted price
+        precio_redondeado = math.floor(precio_ajustado / 1000) * 1000
         logger.debug(f"Precio redondeado después de ajuste: {precio_redondeado}")
 
+        # Calculate range factors
         factor_escala_bajo = math.exp(-0.05)
         factor_escala_alto = math.exp(0.01 * math.log(precio_redondeado / 1000 + 1))
 
+        # Calculate price ranges
         rango_precio_min = max(0, math.floor((precio_redondeado * factor_escala_bajo) / 1000) * 1000)
         rango_precio_max = math.ceil((precio_redondeado * factor_escala_alto) / 1000) * 1000
 
