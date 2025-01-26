@@ -345,13 +345,16 @@ if st.session_state.step == 1:
                     
                     st.success(f"Ubicación encontrada: {direccion_seleccionada}")
                     
-                    if st.button("Mostrar/Ocultar Mapa"):
-                        st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
+                    map_col1, map_col2, map_col3 = st.columns([1, 2, 1])
+                    with map_col1:
+                        if st.button("Mostrar/Ocultar Mapa"):
+                            st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
                     
                     if st.session_state.get('mostrar_mapa', False):
-                        m = folium.Map(location=[latitud, longitud], zoom_start=15)
-                        folium.Marker([latitud, longitud], popup=direccion_seleccionada).add_to(m)
-                        folium_static(m)
+                        with map_col1:
+                            m = folium.Map(location=[latitud, longitud], zoom_start=15, width=300, height=200)
+                            folium.Marker([latitud, longitud], popup=direccion_seleccionada).add_to(m)
+                            folium_static(m)
                 else:
                     st.error("No se pudo geocodificar la dirección seleccionada.")
 
