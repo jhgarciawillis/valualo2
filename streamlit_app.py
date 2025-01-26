@@ -251,8 +251,8 @@ if 'mostrar_mapa' not in st.session_state:
     st.session_state.mostrar_mapa = False
 if 'last_input' not in st.session_state:
     st.session_state.last_input = ""
-if 'current_tab' not in st.session_state:
-    st.session_state.current_tab = "Detalles de la Propiedad"
+if 'step' not in st.session_state:
+    st.session_state.step = 1
 
 # Main UI
 st.title("Estimador de Valor de Propiedades")
@@ -269,10 +269,10 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["Detalles de la Propiedad", "Información de Contacto", "Resultados"])
-
-with tab1:
+# Step 1: Property Details
+if st.session_state.step == 1:
+    st.subheader("Detalles de la Propiedad")
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -287,7 +287,6 @@ with tab1:
                                  "Ingrese la dirección completa de la propiedad."), 
                    unsafe_allow_html=True)
         
-        # Address input section
         current_input = st.text_input("", 
                                     key="entrada_direccion",
                                     placeholder="Calle Principal 123, Ciudad de México")
@@ -323,8 +322,8 @@ with tab1:
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
 
-    # Detalles de la propiedad
-    st.subheader("Detalles de la Propiedad")
+    # Property details
+    st.subheader("Características de la Propiedad")
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -352,11 +351,16 @@ with tab1:
         banos = st.number_input("", min_value=0.0, step=0.5, format="%.1f", key="banos")
 
     if st.button("Siguiente", type="primary"):
-        st.session_state.current_tab = "Información de Contacto"
-        st.rerun()
+        if not st.session_state.direccion_seleccionada or not terreno or not construccion or not habitaciones or not banos:
+            st.error("Por favor complete todos los campos antes de continuar.")
+        else:
+            st.session_state.step = 2
+            st.experimental_rerun()
 
-with tab2:
-    # Información personal
+# Step 2: Contact Information
+elif st.session_state.step == 2:
+    st.subheader("Información de Contacto")
+    
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
@@ -378,7 +382,6 @@ with tab2:
                    unsafe_allow_html=True)
         telefono = st.text_input("", key="telefono", placeholder="9214447277")
 
-    # Interest level as dropdown
     st.subheader("Nivel de Interés")
     interes_venta = st.selectbox(
         "",
@@ -392,78 +395,85 @@ with tab2:
         key="interes_venta"
     )
 
-    # Calculate button
-    texto_boton = "Estimar Valor" if tipo_propiedad == "Casa" else "Estimar Renta"
-    if st.button(texto_boton, type="primary"):
-        if not nombre or not apellido:
-            st.error("Por favor, ingrese su nombre y apellido.")
-        elif not validar_correo(correo):
-            st.error("Por favor, ingrese una dirección de correo electrónico válida.")
-        elif not validar_telefono(telefono):
-            st.error("Por favor, ingrese un número de teléfono válido.")
-        elif not interes_venta:
-            st.error("Por favor, seleccione su nivel de interés.")
-        elif latitud and longitud and terreno and construccion and habitaciones and banos:
-            st.session_state.current_tab = "Resultados"
-            st.rerun()
-        else:
-            st.error("Por favor, complete todos los campos y asegúrese de ingresar una dirección válida.")
-
-with tab3:
-    # Only show results if we have all the necessary data
-    if st.session_state.current_tab == "Resultados":
-        with st.spinner('Calculando...'):
-            datos_procesados = preprocesar_datos(latitud, longitud, terreno, construccion, 
-                                               habitaciones, banos, modelos)
-            if datos_procesados is not None:
-                precio, precio_min, precio_max = predecir_precio(datos_procesados, modelos)
-                if precio is not None:
-                    # Save to Google Sheets
-                    data = {
-                        'tipo_propiedad': tipo_propiedad,
-                        'direccion': st.session_state.direccion_seleccionada,
-                        'terreno': terreno,
-                        'construccion': construccion,
-                        'habitaciones': habitaciones,
-                        'banos': banos,
-                        'nombre': nombre,
-                        'correo': correo,
-                        'telefono': telefono,
-                        'interes_venta': interes_venta,
-                        'precio_estimado': precio
-                    }
-                    
-                    # Save data silently
-                    save_to_sheets(data)
-                    
-                    # Display results
-                    st.markdown("### Resultados")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        resultado_texto = "Valor Estimado" if tipo_propiedad == "Casa" else "Renta Mensual Estimada"
-                        st.metric(resultado_texto, f"${precio:,}")
-                        
-                    with col2:
-                        st.write("Rango Estimado:")
-                        st.write(f"Mínimo: ${precio_min:,}")
-                        st.write(f"Máximo: ${precio_max:,}")
-
-                    fig = go.Figure(go.Bar(
-                        x=['Mínimo', 'Estimado', 'Máximo'],
-                        y=[precio_min, precio, precio_max],
-                        text=[f'${x:,}' for x in [precio_min, precio, precio_max]],
-                        textposition='auto',
-                        marker_color=[SECONDARY_COLOR, PRIMARY_COLOR, SECONDARY_COLOR]
-                    ))
-                    
-                    fig.update_layout(
-                        title='Rango de Precio',
-                        yaxis_title='Precio (MXN)',
-                        showlegend=False
-                    )
-                    st.plotly_chart(fig)
-                else:
-                    st.error("Error al calcular el precio. Por favor, intente nuevamente.")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Anterior"):
+            st.session_state.step = 1
+            st.experimental_rerun()
+    
+    with col2:
+        texto_boton = "Estimar Valor" if tipo_propiedad == "Casa" else "Estimar Renta"
+        if st.button(texto_boton, type="primary"):
+            if not nombre or not apellido:
+                st.error("Por favor, ingrese su nombre y apellido.")
+            elif not validar_correo(correo):
+                st.error("Por favor, ingrese una dirección de correo electrónico válida.")
+            elif not validar_telefono(telefono):
+                st.error("Por favor, ingrese un número de teléfono válido.")
+            elif not interes_venta:
+                st.error("Por favor, seleccione su nivel de interés.")
             else:
-                st.error("Error al procesar los datos. Por favor, verifique la información ingresada.")
+                st.session_state.step = 3
+                st.experimental_rerun()
+
+# Step 3: Results
+elif st.session_state.step == 3:
+    st.subheader("Resultados")
+    
+    with st.spinner('Calculando...'):
+        datos_procesados = preprocesar_datos(latitud, longitud, terreno, construccion, 
+                                           habitaciones, banos, modelos)
+        if datos_procesados is not None:
+            precio, precio_min, precio_max = predecir_precio(datos_procesados, modelos)
+            if precio is not None:
+                # Save to Google Sheets
+                data = {
+                    'tipo_propiedad': tipo_propiedad,
+                    'direccion': st.session_state.direccion_seleccionada,
+                    'terreno': terreno,
+                    'construccion': construccion,
+                    'habitaciones': habitaciones,
+                    'banos': banos,
+                    'nombre': nombre,
+                    'correo': correo,
+                    'telefono': telefono,
+                    'interes_venta': interes_venta,
+                    'precio_estimado': precio
+                }
+                
+                save_to_sheets(data)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    resultado_texto = "Valor Estimado" if tipo_propiedad == "Casa" else "Renta Mensual Estimada"
+                    st.metric(resultado_texto, f"${precio:,}")
+                    
+                with col2:
+                    st.write("Rango Estimado:")
+                    st.write(f"Mínimo: ${precio_min:,}")
+                    st.write(f"Máximo: ${precio_max:,}")
+
+                fig = go.Figure(go.Bar(
+                    x=['Mínimo', 'Estimado', 'Máximo'],
+                    y=[precio_min, precio, precio_max],
+                    text=[f'${x:,}' for x in [precio_min, precio, precio_max]],
+                    textposition='auto',
+                    marker_color=[SECONDARY_COLOR, PRIMARY_COLOR, SECONDARY_COLOR]
+                ))
+                
+                fig.update_layout(
+                    title='Rango de Precio',
+                    yaxis_title='Precio (MXN)',
+                    showlegend=False
+                )
+                st.plotly_chart(fig)
+
+                if st.button("Nueva Estimación"):
+                    for key in st.session_state.keys():
+                        del st.session_state[key]
+                    st.experimental_rerun()
+            else:
+                st.error("Error al calcular el precio. Por favor, intente nuevamente.")
+        else:
+            st.error("Error al procesar los datos. Por favor, verifique la información ingresada.")
