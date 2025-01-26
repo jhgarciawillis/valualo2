@@ -356,13 +356,7 @@ if st.session_state.step == 1:
                 folium_static(m)
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
-    st.subheader("Características de la Propiedad")
-
-    st.write("")  # Single line spacing
     
-    # Property details
-    st.subheader("Características de la Propiedad")
-
     # Property details
     st.subheader("Características de la Propiedad")
     col1, col2, col3, col4 = st.columns(4)
