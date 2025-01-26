@@ -38,89 +38,118 @@ function setupAutofillListener() {
         if (debug) console.log('[Autofill Debug]:', message);
     }
 
-    function handleValueChange(input, newValue) {
-        debugLog(`Value change detected in ${input.name}: ${input.value} -> ${newValue}`);
-        input.value = newValue;
+    function notifyStreamlit(input) {
+        debugLog(`Checking actual value for ${input.name}: ${input.value}`);
         
-        // Notify Streamlit
+        // Get the real value from the DOM
+        const actualValue = input.value;
+        
+        debugLog(`Notifying Streamlit for ${input.name} with value: ${actualValue}`);
+        
         window.parent.postMessage({
             type: 'streamlit:setComponentValue',
-            value: newValue,
+            value: actualValue,
             dataType: 'str'
         }, '*');
-        
-        // Force change event
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Force a change event
+        const event = new Event('change', { bubbles: true });
+        input.dispatchEvent(event);
     }
 
     function monitorInput(input) {
-        debugLog(`Setting up monitor for: ${input.name}`);
+        debugLog(`Setting up monitors for input: ${input.name}`);
+        
+        // Store initial value
         let lastValue = input.value;
-        let lastLength = input.value.length;
+        
+        // Check for immediate autofill
+        setTimeout(() => {
+            if (input.value !== lastValue) {
+                debugLog(`Delayed autofill detected on ${input.name}`);
+                notifyStreamlit(input);
+                lastValue = input.value;
+            }
+        }, 50);
 
-        // Watch for rapid value changes (typical in autofill)
+        // Create a more aggressive observer that watches the actual input element
         const observer = new MutationObserver((mutations) => {
             if (input.value !== lastValue) {
-                debugLog(`Mutation observed: ${lastValue} -> ${input.value}`);
-                handleValueChange(input, input.value);
+                debugLog(`Value changed through mutation on ${input.name}: ${lastValue} -> ${input.value}`);
+                notifyStreamlit(input);
                 lastValue = input.value;
             }
         });
 
+        // Observe the input element directly
         observer.observe(input, {
             attributes: true,
             characterData: true,
+            childList: true,
             subtree: true
         });
 
-        // Monitor for instant changes
-        input.addEventListener('input', (e) => {
-            if (input.value !== lastValue) {
-                // Check if length changed significantly (autofill characteristic)
-                if (Math.abs(input.value.length - lastLength) > 2) {
-                    debugLog(`Possible autofill detected - length change: ${lastLength} -> ${input.value.length}`);
-                }
-                handleValueChange(input, input.value);
-                lastValue = input.value;
-                lastLength = input.value.length;
-            }
-        });
-
-        // Additional Chrome/Safari autofill detection
+        // Monitor for Chrome/Safari autofill
         input.addEventListener('animationstart', (e) => {
-            if (e.animationName === 'onAutoFillStart') {
+            if (e.animationName.includes('onAutoFill') || e.animationName === 'onAutoFillStart') {
                 debugLog(`Autofill animation detected on: ${input.name}`);
+                // Small delay to ensure the value is populated
                 setTimeout(() => {
                     if (input.value !== lastValue) {
-                        handleValueChange(input, input.value);
+                        notifyStreamlit(input);
                         lastValue = input.value;
                     }
                 }, 50);
             }
         });
+
+        // Monitor all possible input events
+        ['input', 'change', 'keyup', 'paste', 'focus'].forEach(eventType => {
+            input.addEventListener(eventType, (e) => {
+                if (input.value !== lastValue) {
+                    debugLog(`${eventType} event detected on ${input.name}: ${lastValue} -> ${input.value}`);
+                    notifyStreamlit(input);
+                    lastValue = input.value;
+                }
+            });
+        });
+
+        // Additional check for -webkit-autofill style
+        const style = window.getComputedStyle(input);
+        new MutationObserver(() => {
+            if (input.value !== lastValue) {
+                debugLog(`Style change detected on ${input.name}`);
+                notifyStreamlit(input);
+                lastValue = input.value;
+            }
+        }).observe(document.documentElement, {attributes: true, subtree: true});
     }
 
-    // Setup initial inputs
-    document.querySelectorAll('input').forEach(monitorInput);
-
-    // Monitor for dynamically added inputs
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
+    // Monitor all input fields, including dynamically added ones
+    const documentObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
                 if (node.tagName === 'INPUT') {
                     monitorInput(node);
+                }
+                if (node.querySelectorAll) {
+                    node.querySelectorAll('input').forEach(monitorInput);
                 }
             });
         });
     });
 
-    observer.observe(document.body, {
+    // Start monitoring document for new inputs
+    documentObserver.observe(document.body, {
         childList: true,
         subtree: true
     });
+
+    // Monitor existing inputs
+    document.querySelectorAll('input').forEach(monitorInput);
 }
 
-// Initialize on page load
+// Initialize when DOM is ready
 if (document.readyState === 'complete') {
     setupAutofillListener();
 } else {
@@ -129,8 +158,18 @@ if (document.readyState === 'complete') {
 </script>
 
 <style>
-@keyframes onAutoFillStart { from {} to {} }
-input:-webkit-autofill { animation-name: onAutoFillStart; }
+@keyframes onAutoFillStart { from { opacity: 0.99; } to { opacity: 1; } }
+@keyframes onAutoFillCancel { from { opacity: 0.99; } to { opacity: 1; } }
+
+input:-webkit-autofill {
+    animation-name: onAutoFillStart;
+    animation-duration: 1ms;
+}
+
+input:not(:-webkit-autofill) {
+    animation-name: onAutoFillCancel;
+    animation-duration: 1ms;
+}
 </style>
 """
 
