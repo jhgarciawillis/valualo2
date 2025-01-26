@@ -303,13 +303,13 @@ if st.session_state.step == 1:
         st.markdown(create_tooltip("Tipo de Propiedad", 
                                  "Seleccione si es una casa en venta o un departamento en alquiler."), 
                    unsafe_allow_html=True)
-        tipo_propiedad = st.selectbox(
+        st.selectbox(
             "Tipo de Propiedad",
-            ["Casa", "Departamento"],
-            index=0 if not "tipo_propiedad" in st.session_state else ["Casa", "Departamento"].index(st.session_state.tipo_propiedad),
-            key="tipo_propiedad"
+            options=["Casa", "Departamento"],
+            key="tipo_propiedad",
+            label_visibility="collapsed"
         )
-        modelos = cargar_modelos(tipo_propiedad)
+        modelos = cargar_modelos(st.session_state.tipo_propiedad)
     
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
@@ -318,36 +318,32 @@ if st.session_state.step == 1:
         
         direccion = st.text_input(
             "Dirección",
-            value=st.session_state.get("entrada_direccion", ""),
-            key="entrada_direccion_input",
-            placeholder="Calle Principal 123, Ciudad de México"
+            key="entrada_direccion",
+            placeholder="Calle Principal 123, Ciudad de México",
+            label_visibility="collapsed"
         )
         
-        if direccion and direccion != st.session_state.get("last_input", "") and len(direccion) >= 3:
-            sugerencias = obtener_sugerencias_direccion(direccion)
-            if sugerencias:
-                st.session_state.sugerencias = sugerencias
-                st.session_state.last_input = direccion
+        if len(direccion) >= 3 and direccion != st.session_state.get('last_input', ''):
+            st.session_state.last_input = direccion
+            st.session_state.sugerencias = obtener_sugerencias_direccion(direccion)
         
-        if 'sugerencias' in st.session_state and st.session_state.sugerencias:
-            direccion_seleccionada = st.selectbox(
+        if st.session_state.get('sugerencias'):
+            st.selectbox(
                 "Sugerencias de direcciones",
                 options=st.session_state.sugerencias,
-                key="direccion_dropdown"
+                key="direccion_seleccionada",
+                label_visibility="collapsed"
             )
-            if direccion_seleccionada:
-                st.session_state.direccion_seleccionada = direccion_seleccionada
 
     # Geocodificación y mapa
-    if 'direccion_seleccionada' in st.session_state and st.session_state.direccion_seleccionada:
+    if st.session_state.get('direccion_seleccionada'):
         latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
         if latitud and longitud:
             st.session_state.latitud = latitud
             st.session_state.longitud = longitud
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
             
-            mostrar_mapa = st.button("Mostrar/Ocultar Mapa", key="toggle_map")
-            if mostrar_mapa:
+            if st.button("Mostrar/Ocultar Mapa", key="toggle_map"):
                 st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
 
             if st.session_state.get('mostrar_mapa', False):
@@ -365,72 +361,59 @@ if st.session_state.step == 1:
         st.markdown(create_tooltip("Terreno (m²)", 
                                  "Ingrese el área total del terreno en metros cuadrados."), 
                    unsafe_allow_html=True)
-        if 'terreno' not in st.session_state:
-            st.session_state.terreno = 0
-        terreno = st.number_input(
+        st.number_input(
             "Metros cuadrados de terreno",
             min_value=0,
-            value=st.session_state.terreno,
             step=1,
             format="%d",
-            key="terreno_input"
+            key="terreno",
+            label_visibility="collapsed"
         )
 
     with col2:
         st.markdown(create_tooltip("Construcción (m²)", 
                                  "Ingrese el área construida en metros cuadrados."), 
                    unsafe_allow_html=True)
-        if 'construccion' not in st.session_state:
-            st.session_state.construccion = 0
-        construccion = st.number_input(
+        st.number_input(
             "Metros cuadrados de construcción",
             min_value=0,
-            value=st.session_state.construccion,
             step=1,
             format="%d",
-            key="construccion_input"
+            key="construccion",
+            label_visibility="collapsed"
         )
 
     with col3:
         st.markdown(create_tooltip("Habitaciones", 
                                  "Ingrese el número total de habitaciones."), 
                    unsafe_allow_html=True)
-        if 'habitaciones' not in st.session_state:
-            st.session_state.habitaciones = 0
-        habitaciones = st.number_input(
+        st.number_input(
             "Número de habitaciones",
             min_value=0,
-            value=st.session_state.habitaciones,
             step=1,
             format="%d",
-            key="habitaciones_input"
+            key="habitaciones",
+            label_visibility="collapsed"
         )
 
     with col4:
         st.markdown(create_tooltip("Baños", 
                                  "Ingrese el número de baños."), 
                    unsafe_allow_html=True)
-        if 'banos' not in st.session_state:
-            st.session_state.banos = 0
-        banos = st.number_input(
+        st.number_input(
             "Número de baños",
             min_value=0.0,
-            value=float(st.session_state.banos),
             step=0.5,
             format="%.1f",
-            key="banos_input"
+            key="banos",
+            label_visibility="collapsed"
         )
-
-    # Update session state with current values
-    st.session_state.terreno = terreno
-    st.session_state.construccion = construccion
-    st.session_state.habitaciones = habitaciones
-    st.session_state.banos = banos
 
     if st.button("Siguiente", type="primary"):
         if not st.session_state.get('direccion_seleccionada'):
             st.error("Por favor seleccione una dirección válida.")
-        elif not terreno or not construccion or not habitaciones or not banos:
+        elif not st.session_state.get('terreno') or not st.session_state.get('construccion') or \
+             not st.session_state.get('habitaciones') or not st.session_state.get('banos'):
             st.error("Por favor complete todos los campos antes de continuar.")
         else:
             st.session_state.step = 2
