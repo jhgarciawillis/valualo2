@@ -189,15 +189,23 @@ def agregar_caracteristica_grupo(latitud, longitud, modelos):
 
 def preprocesar_datos(latitud, longitud, terreno, construccion, habitaciones, banos, modelos):
     logger.debug(f"Preprocesando datos para tipo de propiedad: {st.session_state.tipo_propiedad}")
+    logger.debug(f"Valores recibidos: terreno={terreno}, construccion={construccion}, habitaciones={habitaciones}, banos={banos}")
     try:
         grupo_ubicacion = agregar_caracteristica_grupo(latitud, longitud, modelos)
         
+        # Convert all values to float explicitly
+        terreno_val = float(terreno) if terreno is not None else 0.0
+        construccion_val = float(construccion) if construccion is not None else 0.0
+        habitaciones_val = float(habitaciones) if habitaciones is not None else 0.0
+        banos_val = float(banos) if banos is not None else 0.0
+        grupo_val = float(grupo_ubicacion) if grupo_ubicacion is not None else 0.0
+
         datos_entrada = pd.DataFrame({
-            'Terreno': [float(terreno)],
-            'Construccion': [float(construccion)],
-            'Habitaciones': [float(habitaciones)],
-            'Banos': [float(banos)],
-            'GrupoUbicacion': [float(grupo_ubicacion)],
+            'Terreno': [terreno_val],
+            'Construccion': [construccion_val],
+            'Habitaciones': [habitaciones_val],
+            'Banos': [banos_val],
+            'GrupoUbicacion': [grupo_val],
         })
         
         logger.debug(f"Datos de entrada antes de imputación: {datos_entrada.to_dict()}")
@@ -510,21 +518,25 @@ elif st.session_state.step == 2:
           logger.debug(f"Updated telefono to: {telefono}")
 
   st.subheader("Nivel de Interés")
+  interes_options = [
+      "Solo estoy explorando el valor de mi propiedad por curiosidad.",
+      "Podría considerar vender/alquilar en el futuro.",
+      "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
+      "Estoy buscando activamente vender/alquilar mi propiedad.",
+      "Necesito vender/alquilar mi propiedad lo antes posible."
+  ]
+  
+  interes_index = 0
+  if st.session_state.get('interes_venta') in interes_options:
+      interes_index = interes_options.index(st.session_state.interes_venta)
+  
   interes_venta = st.radio(
       "",
-      [
-          "Solo estoy explorando el valor de mi propiedad por curiosidad.",
-          "Podría considerar vender/alquilar en el futuro.",
-          "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
-          "Estoy buscando activamente vender/alquilar mi propiedad.",
-          "Necesito vender/alquilar mi propiedad lo antes posible."
-      ],
-      label_visibility="collapsed",
-      index=0 if not st.session_state.get('interes_venta') else list(st.session_state.interes_venta).index(st.session_state.interes_venta)
+      options=interes_options,
+      index=interes_index,
+      label_visibility="collapsed"
   )
-  if interes_venta != st.session_state.get('interes_venta', ''):
-      st.session_state.interes_venta = interes_venta
-      logger.debug(f"Updated interes_venta to: {interes_venta}")
+  st.session_state.interes_venta = interes_venta
 
   logger.debug("=== STEP 2 VALUES BEING SET ===")
   logger.debug(f"Nombre: {st.session_state.nombre}")
@@ -556,6 +568,16 @@ elif st.session_state.step == 2:
 # Step 3: Results
 elif st.session_state.step == 3:
    st.subheader("Resultados")
+   
+   logger.debug("=== VERIFYING VALUES BEFORE PROCESSING ===")
+   logger.debug(f"Terreno (type: {type(st.session_state.terreno)}): {st.session_state.terreno}")
+   logger.debug(f"Construccion (type: {type(st.session_state.construccion)}): {st.session_state.construccion}")
+   logger.debug(f"Habitaciones (type: {type(st.session_state.habitaciones)}): {st.session_state.habitaciones}")
+   logger.debug(f"Baños (type: {type(st.session_state.banos)}): {st.session_state.banos}")
+
+   if st.session_state.terreno == 0 and st.session_state.construccion == 0 and st.session_state.habitaciones == 0 and st.session_state.banos == 0:
+       st.error("Los valores de la propiedad no pueden ser todos cero. Por favor revise los datos ingresados.")
+       st.stop()
    
    logger.debug("=== STEP 3 INITIAL VALUES ===")
    logger.debug(f"Tipo de propiedad: {st.session_state.tipo_propiedad}")
