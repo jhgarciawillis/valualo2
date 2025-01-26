@@ -17,6 +17,9 @@ from datetime import datetime
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Initialize geocoder
+geolocalizador = Nominatim(user_agent="aplicacion_propiedades")
+
 # Page configuration
 st.set_page_config(page_title="Estimador de Valor de Propiedades", layout="wide")
 
