@@ -249,7 +249,9 @@ if 'direccion_seleccionada' not in st.session_state:
     st.session_state.direccion_seleccionada = ""
 if 'mostrar_mapa' not in st.session_state:
     st.session_state.mostrar_mapa = False
-
+if 'last_input' not in st.session_state:
+    st.session_state.last_input = ""
+    
 # Main UI
 st.title("Estimador de Valor de Propiedades")
 
@@ -263,18 +265,23 @@ with st.container():
                    unsafe_allow_html=True)
         tipo_propiedad = st.selectbox("", ["Casa", "Departamento"])
         modelos = cargar_modelos(tipo_propiedad)
-
+    
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
                                  "Ingrese la dirección completa de la propiedad."), 
                    unsafe_allow_html=True)
         
-        # Text input for address
-        st.text_input("", key="entrada_direccion", 
-                     placeholder="Calle Principal 123, Ciudad de México", 
-                     on_change=on_address_change)
+        # Text input for address with debouncing
+        current_input = st.text_input("", 
+                                    key="entrada_direccion",
+                                    placeholder="Calle Principal 123, Ciudad de México")
         
-        # Dropdown for suggestions
+        # Check if input has changed and has at least 3 characters
+        if current_input != st.session_state.last_input and len(current_input) >= 3:
+            st.session_state.last_input = current_input
+            st.session_state.sugerencias = obtener_sugerencias_direccion(current_input)
+            
+        # Dropdown for suggestions - show immediately if we have suggestions
         if st.session_state.sugerencias:
             direccion_seleccionada = st.selectbox(
                 "Sugerencias de direcciones:",
@@ -285,7 +292,7 @@ with st.container():
             if direccion_seleccionada:
                 st.session_state.direccion_seleccionada = direccion_seleccionada
 
-# Geocodificación y mapa
+    # Geocodificación y mapa
     latitud, longitud = None, None
     if st.session_state.direccion_seleccionada:
         latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
