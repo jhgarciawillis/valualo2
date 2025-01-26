@@ -167,19 +167,22 @@ def create_tooltip(label, explanation):
     """
 
 def text_input_with_autofill(label, key, placeholder=""):
-    value = st.text_input(
+    # Create the input with a key for initial and final value comparison
+    current_value = st.text_input(
         label,
+        value=st.session_state.get(key.replace('_', ''), ''),  # Get the actual stored value
         key=key,
         placeholder=placeholder,
         label_visibility="collapsed"
     )
     
-    if key in st.session_state:
-        field_name = key.replace('_', '', 1)
-        st.session_state[field_name] = st.session_state[key]
-        logger.debug(f"Autofill detected for {field_name}: {st.session_state[key]}")
+    # If there's any value in the field, store it immediately
+    if current_value:
+        actual_key = key.replace('_', '')  # Remove underscore for actual storage
+        st.session_state[actual_key] = current_value
+        logger.debug(f"Value detected in {actual_key}: {current_value}")
     
-    return value
+    return current_value
 
 def update_session_state(field_name, value):
     st.session_state[field_name] = value
@@ -377,27 +380,27 @@ if st.session_state.step == 1:
         st.markdown(create_tooltip("Tipo de Propiedad", 
                                  "Seleccione si es una casa en venta o un departamento en alquiler."), 
                    unsafe_allow_html=True)
-        tipo_propiedad = st.selectbox(
+        tipo_propiedad = text_input_with_autofill(
             "Tipo de Propiedad",
-            options=["Casa", "Departamento"],
-            label_visibility="collapsed"
+            key="_tipo_propiedad",
+            placeholder="Casa"
         )
-        if tipo_propiedad != st.session_state.get('tipo_propiedad'):
-            st.session_state.tipo_propiedad = tipo_propiedad
-            logger.debug(f"Updated tipo_propiedad to: {tipo_propiedad}")
+        if not tipo_propiedad:
+            tipo_propiedad = "Casa"
+        st.session_state.tipo_propiedad = tipo_propiedad
+        logger.debug(f"Tipo de propiedad seleccionado: {st.session_state.tipo_propiedad}")
             
         modelos = cargar_modelos(st.session_state.tipo_propiedad)
-        logger.debug(f"Tipo de propiedad seleccionado: {st.session_state.tipo_propiedad}")
     
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
                                  "Ingrese la dirección completa de la propiedad."), 
                    unsafe_allow_html=True)
         
-        direccion = st.text_input(
+        direccion = text_input_with_autofill(
             "Dirección",
-            placeholder="Calle Principal 123, Ciudad de México",
-            label_visibility="collapsed"
+            key="_direccion",
+            placeholder="Calle Principal 123, Ciudad de México"
         )
         
         if len(direccion) >= 3 and direccion != st.session_state.get('last_input', ''):
@@ -500,8 +503,8 @@ if st.session_state.step == 1:
         else:
             st.session_state.step = 2
             st.rerun()
-    
-    # Step 2: Contact Information
+
+# Step 2: Contact Information
 elif st.session_state.step == 2:
    st.subheader("Información de Contacto")
    
@@ -513,9 +516,6 @@ elif st.session_state.step == 2:
            key="_nombre",
            placeholder="Ingrese su nombre"
        )
-       if nombre:
-           st.session_state.nombre = nombre
-           logger.debug(f"Updated nombre to: {nombre}")
 
    with col2:
        st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
@@ -524,9 +524,6 @@ elif st.session_state.step == 2:
            key="_apellido",
            placeholder="Ingrese su apellido"
        )
-       if apellido:
-           st.session_state.apellido = apellido
-           logger.debug(f"Updated apellido to: {apellido}")
 
    col1, col2 = st.columns(2)
    with col1:
@@ -538,9 +535,6 @@ elif st.session_state.step == 2:
            key="_correo",
            placeholder="usuario@ejemplo.com"
        )
-       if correo:
-           st.session_state.correo = correo
-           logger.debug(f"Updated correo to: {correo}")
 
    with col2:
        st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
@@ -550,9 +544,6 @@ elif st.session_state.step == 2:
            key="_telefono",
            placeholder="9214447277"
        )
-       if telefono:
-           st.session_state.telefono = telefono
-           logger.debug(f"Updated telefono to: {telefono}")
 
    st.subheader("Nivel de Interés")
    interes_options = [
