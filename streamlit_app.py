@@ -29,7 +29,6 @@ st.set_page_config(page_title="Estimador de Valor de Propiedades", layout="wide"
 PRIMARY_COLOR = "#1f77b4"  # Blue
 SECONDARY_COLOR = "#2ca02c"  # Green
 
-// Enhanced autofill detector
 autofill_detector = """
 <script>
 function setupAutofillListener() {
