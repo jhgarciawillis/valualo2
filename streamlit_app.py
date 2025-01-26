@@ -270,6 +270,16 @@ if 'latitud' not in st.session_state:
    st.session_state.latitud = None
 if 'longitud' not in st.session_state:
    st.session_state.longitud = None
+if 'nombre' not in st.session_state:
+   st.session_state.nombre = ""
+if 'apellido' not in st.session_state:
+   st.session_state.apellido = ""
+if 'correo' not in st.session_state:
+   st.session_state.correo = ""
+if 'telefono' not in st.session_state:
+   st.session_state.telefono = ""
+if 'interes_venta' not in st.session_state:
+   st.session_state.interes_venta = ""
 
 # Welcome message
 st.markdown("""
@@ -385,10 +395,12 @@ elif st.session_state.step == 2:
    with col1:
        st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
        nombre = st.text_input("", key="nombre", placeholder="Ingrese su nombre")
+       st.session_state.nombre = nombre
 
    with col2:
        st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
        apellido = st.text_input("", key="apellido", placeholder="Ingrese su apellido")
+       st.session_state.apellido = apellido
 
    col1, col2 = st.columns(2)
    with col1:
@@ -396,11 +408,13 @@ elif st.session_state.step == 2:
                                 "Ingrese su dirección de correo electrónico."), 
                   unsafe_allow_html=True)
        correo = st.text_input("", key="correo", placeholder="usuario@ejemplo.com")
+       st.session_state.correo = correo
 
    with col2:
        st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
                   unsafe_allow_html=True)
        telefono = st.text_input("", key="telefono", placeholder="9214447277")
+       st.session_state.telefono = telefono
 
    st.subheader("Nivel de Interés")
    interes_venta = st.selectbox(
@@ -414,6 +428,7 @@ elif st.session_state.step == 2:
        ],
        key="interes_venta"
    )
+   st.session_state.interes_venta = interes_venta
 
    col1, col2 = st.columns(2)
    with col1:
@@ -433,11 +448,6 @@ elif st.session_state.step == 2:
            elif not interes_venta:
                st.error("Por favor, seleccione su nivel de interés.")
            else:
-               st.session_state.nombre = nombre
-               st.session_state.apellido = apellido
-               st.session_state.correo = correo
-               st.session_state.telefono = telefono
-               st.session_state.interes_venta = interes_venta
                st.session_state.step = 3
                st.rerun()
 
@@ -462,10 +472,10 @@ elif st.session_state.step == 3:
                    'construccion': st.session_state.construccion,
                    'habitaciones': st.session_state.habitaciones,
                    'banos': st.session_state.banos,
-                   'nombre': nombre,
-                   'correo': correo,
-                   'telefono': telefono,
-                   'interes_venta': interes_venta,
+                   'nombre': st.session_state.nombre,
+                   'correo': st.session_state.correo,
+                   'telefono': st.session_state.telefono,
+                   'interes_venta': st.session_state.interes_venta,
                    'precio_estimado': precio
                }
                
