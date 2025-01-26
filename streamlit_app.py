@@ -156,6 +156,17 @@ def cargar_modelos(tipo_propiedad):
         st.error(f"Error al cargar los modelos: {str(e)}. Por favor contacte al soporte.")
     return modelos
 
+def geocodificar_direccion(direccion):
+    logger.debug(f"Intentando geocodificar dirección: {direccion}")
+    try:
+        ubicacion = geolocalizador.geocode(direccion)
+        if ubicacion:
+            logger.debug(f"Geocodificación exitosa: {ubicacion.latitude}, {ubicacion.longitude}")
+            return ubicacion.latitude, ubicacion.longitude, ubicacion
+    except (GeocoderTimedOut, GeocoderUnavailable):
+        logger.warning("Servicio de geocodificación no disponible")
+    return None, None, None
+
 def obtener_sugerencias_direccion(consulta):
     logger.debug(f"Obteniendo sugerencias para: {consulta}")
     try:
@@ -165,6 +176,7 @@ def obtener_sugerencias_direccion(consulta):
     except (GeocoderTimedOut, GeocoderUnavailable):
         logger.warning("Servicio de geocodificación no disponible")
     return []
+
 
 def agregar_caracteristica_grupo(latitud, longitud, modelos):
     logger.debug(f"Agregando característica de grupo para: {latitud}, {longitud}")
