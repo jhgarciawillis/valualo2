@@ -1,10 +1,10 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import numpy as np
 import joblib
 import os
 import math
-import plotly.graph_objects as go
+import plotly.graph_objects as go 
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 from streamlit.components.v1 import html
@@ -13,6 +13,7 @@ import logging
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -28,35 +29,133 @@ st.set_page_config(page_title="Estimador de Valor de Propiedades", layout="wide"
 PRIMARY_COLOR = "#1f77b4"  # Blue
 SECONDARY_COLOR = "#2ca02c"  # Green
 
-# Add JavaScript for autofill detection
+# Enhanced autofill detection JavaScript
 autofill_detector = """
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const inputs = document.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('animationstart', function(e) {
-            if (e.animationName === 'onAutoFillStart') {
-                input.dispatchEvent(new Event('change', { bubbles: true }));
+function setupAutofillListener() {
+    // Debug flag
+    const debug = true;
+    
+    function debugLog(message) {
+        if (debug) console.log('[Autofill Debug]:', message);
+    }
+
+    function notifyStreamlit(input, value) {
+        debugLog(`Notifying Streamlit of value change: ${input.name} = ${value}`);
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: value,
+            dataType: 'str'
+        }, '*');
+        
+        // Trigger change event
+        const event = new Event('change', { bubbles: true });
+        input.dispatchEvent(event);
+    }
+
+    function monitorInput(input) {
+        debugLog(`Setting up monitors for input: ${input.name}`);
+        
+        // Store initial value
+        let lastValue = input.value;
+        
+        // Monitor for Chrome/Safari autofill
+        input.addEventListener('animationstart', (e) => {
+            if (e.animationName.includes('autofill') || e.animationName === 'onAutoFillStart') {
+                debugLog(`Autofill animation detected on: ${input.name}`);
+                if (input.value !== lastValue) {
+                    notifyStreamlit(input, input.value);
+                    lastValue = input.value;
+                }
             }
         });
-        
-        input.addEventListener('change', function(e) {
-            window.parent.postMessage({
-                type: 'streamlit:setComponentValue',
-                value: e.target.value,
-                dataType: 'str'
-            }, '*');
+
+        // Monitor for Firefox autofill
+        input.addEventListener('input', (e) => {
+            debugLog(`Input event on: ${input.name}`);
+            if (input.value !== lastValue) {
+                notifyStreamlit(input, input.value);
+                lastValue = input.value;
+            }
+        });
+
+        // Monitor for Edge/IE autofill
+        input.addEventListener('change', (e) => {
+            debugLog(`Change event on: ${input.name}`);
+            if (input.value !== lastValue) {
+                notifyStreamlit(input, input.value);
+                lastValue = input.value;
+            }
+        });
+
+        // Additional check for delayed autofill
+        setTimeout(() => {
+            if (input.value && input.value !== lastValue) {
+                debugLog(`Delayed autofill detected on: ${input.name}`);
+                notifyStreamlit(input, input.value);
+                lastValue = input.value;
+            }
+        }, 100);
+    }
+
+    // Monitor DOM changes for dynamically added inputs
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes) {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'INPUT') {
+                        monitorInput(node);
+                    }
+                });
+            }
         });
     });
-});
+
+    // Setup initial inputs
+    document.querySelectorAll('input').forEach(monitorInput);
+
+    // Watch for new inputs
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    debugLog('Autofill listener setup complete');
+}
+
+// Setup on DOM ready
+if (document.readyState === 'complete') {
+    setupAutofillListener();
+} else {
+    document.addEventListener('DOMContentLoaded', setupAutofillListener);
+}
 </script>
+
 <style>
+/* Chrome/Safari autofill detection */
 @keyframes onAutoFillStart {
     from { background-color: transparent; }
     to { background-color: transparent; }
 }
+
+@keyframes onAutoFillCancel {
+    from { background-color: transparent; }
+    to { background-color: transparent; }
+}
+
 input:-webkit-autofill {
     animation-name: onAutoFillStart;
+    animation-duration: 1ms;
+}
+
+input:not(:-webkit-autofill) {
+    animation-name: onAutoFillCancel;
+    animation-duration: 1ms;
+}
+
+/* Firefox autofill styles */
+input:-moz-autofill {
+    background-color: transparent !important;
 }
 </style>
 """
@@ -154,7 +253,50 @@ def save_to_sheets(data):
         logger.error(f"Error saving to Google Sheets: {str(e)}")
         return False
 
-# Utility functions
+# Enhanced text input function with autofill detection
+def text_input_with_autofill(label, key, placeholder=""):
+    """
+    Enhanced text input with cross-browser autofill detection and debugging
+    """
+    logger.debug(f"Rendering input field - Label: {label}, Key: {key}")
+    
+    # Remove underscore for session state key
+    actual_key = key.replace('_', '')
+    
+    # Get previous value
+    previous_value = st.session_state.get(actual_key, '')
+    logger.debug(f"Previous value for {actual_key}: {previous_value}")
+    
+    # Create input field
+    current_value = st.text_input(
+        label,
+        value=previous_value,
+        key=key,
+        placeholder=placeholder,
+        label_visibility="collapsed"
+    )
+    
+    # Debug current value
+    logger.debug(f"Current value for {actual_key}: {current_value}")
+    
+    # Handle value changes
+    if current_value != previous_value:
+        logger.debug(f"Value changed in {actual_key}: {previous_value} -> {current_value}")
+        st.session_state[actual_key] = current_value
+        
+        # Check for multiple simultaneous changes (likely autofill)
+        if not st.session_state.get('_autofill_batch'):
+            st.session_state._autofill_batch = set()
+        st.session_state._autofill_batch.add(actual_key)
+        
+        # If multiple fields changed, trigger rerun
+        if len(st.session_state._autofill_batch) > 1:
+            logger.debug(f"Multiple fields changed: {st.session_state._autofill_batch}")
+            st.session_state._autofill_batch = set()
+            st.rerun()
+    
+    return current_value
+
 def create_tooltip(label, explanation):
     return f"""
     <div class="label-container">
@@ -165,55 +307,6 @@ def create_tooltip(label, explanation):
         </div>
     </div>
     """
-
-def text_input_with_autofill(label, key, placeholder=""):
-    # Create the input with a key for initial and final value comparison
-    current_value = st.text_input(
-        label,
-        value=st.session_state.get(key.replace('_', ''), ''),  # Get the actual stored value
-        key=key,
-        placeholder=placeholder,
-        label_visibility="collapsed"
-    )
-    
-    # If there's any value in the field, store it immediately
-    if current_value:
-        actual_key = key.replace('_', '')  # Remove underscore for actual storage
-        st.session_state[actual_key] = current_value
-        logger.debug(f"Value detected in {actual_key}: {current_value}")
-    
-    return current_value
-
-def update_session_state(field_name, value):
-    st.session_state[field_name] = value
-    logger.debug(f"Session state updated - {field_name}: {value}")
-
-@st.cache_resource
-def cargar_modelos(tipo_propiedad):
-    directorio_actual = os.path.dirname(os.path.abspath(__file__))
-    prefijo = "renta_" if tipo_propiedad == "Departamento" else ""
-    logger.debug(f"Cargando modelos para {tipo_propiedad} con prefijo: '{prefijo}'")
-    modelos = {}
-    modelos_requeridos = {
-        'modelo': 'bosque_aleatorio.joblib',
-        'escalador': 'escalador.joblib',
-        'imputador': 'imputador.joblib',
-        'agrupamiento': 'agrupamiento.joblib'
-    }
-    try:
-        for nombre_modelo, nombre_archivo in modelos_requeridos.items():
-            ruta_archivo = os.path.join(directorio_actual, f"{prefijo}{nombre_archivo}")
-            logger.debug(f"Intentando cargar modelo: {nombre_modelo} desde archivo: {ruta_archivo}")
-            if os.path.exists(ruta_archivo):
-                modelos[nombre_modelo] = joblib.load(ruta_archivo)
-                logger.debug(f"Modelo {nombre_modelo} cargado exitosamente")
-            else:
-                logger.error(f"Archivo de modelo no encontrado: {ruta_archivo}")
-                raise FileNotFoundError(f"Archivo de modelo no encontrado: {ruta_archivo}")
-    except Exception as e:
-        logger.error(f"Error al cargar los modelos: {str(e)}")
-        st.error(f"Error al cargar los modelos: {str(e)}. Por favor contacte al soporte.")
-    return modelos
 
 def geocodificar_direccion(direccion):
     logger.debug(f"Intentando geocodificar dirección: {direccion}")
@@ -245,6 +338,33 @@ def agregar_caracteristica_grupo(latitud, longitud, modelos):
     except Exception as e:
         logger.error(f"Error al agregar característica de grupo: {str(e)}")
         return None
+
+@st.cache_resource
+def cargar_modelos(tipo_propiedad):
+    directorio_actual = os.path.dirname(os.path.abspath(__file__))
+    prefijo = "renta_" if tipo_propiedad == "Departamento" else ""
+    logger.debug(f"Cargando modelos para {tipo_propiedad} con prefijo: '{prefijo}'")
+    modelos = {}
+    modelos_requeridos = {
+        'modelo': 'bosque_aleatorio.joblib',
+        'escalador': 'escalador.joblib',
+        'imputador': 'imputador.joblib',
+        'agrupamiento': 'agrupamiento.joblib'
+    }
+    try:
+        for nombre_modelo, nombre_archivo in modelos_requeridos.items():
+            ruta_archivo = os.path.join(directorio_actual, f"{prefijo}{nombre_archivo}")
+            logger.debug(f"Intentando cargar modelo: {nombre_modelo} desde archivo: {ruta_archivo}")
+            if os.path.exists(ruta_archivo):
+                modelos[nombre_modelo] = joblib.load(ruta_archivo)
+                logger.debug(f"Modelo {nombre_modelo} cargado exitosamente")
+            else:
+                logger.error(f"Archivo de modelo no encontrado: {ruta_archivo}")
+                raise FileNotFoundError(f"Archivo de modelo no encontrado: {ruta_archivo}")
+    except Exception as e:
+        logger.error(f"Error al cargar los modelos: {str(e)}")
+        st.error(f"Error al cargar los modelos: {str(e)}. Por favor contacte al soporte.")
+    return modelos
 
 def preprocesar_datos(latitud, longitud, terreno, construccion, habitaciones, banos, modelos):
     logger.debug(f"Preprocesando datos para tipo de propiedad: {st.session_state.tipo_propiedad}")
@@ -321,6 +441,11 @@ def on_address_change():
     else:
         st.session_state.direccion_seleccionada = ""
 
+def initialize_autofill_detection():
+    # Initialize session state for batch processing
+    if '_autofill_batch' not in st.session_state:
+        st.session_state._autofill_batch = set()
+
 # Initialize session state
 if 'entrada_direccion' not in st.session_state:
    st.session_state.entrada_direccion = ""
@@ -354,6 +479,9 @@ if 'telefono' not in st.session_state:
    st.session_state.telefono = ""
 if 'interes_venta' not in st.session_state:
    st.session_state.interes_venta = ""
+
+# Initialize autofill detection
+initialize_autofill_detection()
 
 # Main UI
 st.title("Estimador de Valor de Propiedades")
@@ -503,84 +631,84 @@ if st.session_state.step == 1:
         else:
             st.session_state.step = 2
             st.rerun()
-
-# Step 2: Contact Information
+    
+    # Step 2: Contact Information
 elif st.session_state.step == 2:
-   st.subheader("Información de Contacto")
-   
-   col1, col2 = st.columns(2)
-   with col1:
-       st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
-       nombre = text_input_with_autofill(
-           "Nombre",
-           key="_nombre",
-           placeholder="Ingrese su nombre"
-       )
+    st.subheader("Información de Contacto")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
+        nombre = text_input_with_autofill(
+            "Nombre",
+            key="_nombre",
+            placeholder="Ingrese su nombre"
+        )
 
-   with col2:
-       st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
-       apellido = text_input_with_autofill(
-           "Apellido",
-           key="_apellido",
-           placeholder="Ingrese su apellido"
-       )
+    with col2:
+        st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
+        apellido = text_input_with_autofill(
+            "Apellido",
+            key="_apellido",
+            placeholder="Ingrese su apellido"
+        )
 
-   col1, col2 = st.columns(2)
-   with col1:
-       st.markdown(create_tooltip("Correo Electrónico", 
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(create_tooltip("Correo Electrónico", 
                                 "Ingrese su dirección de correo electrónico."), 
-                  unsafe_allow_html=True)
-       correo = text_input_with_autofill(
-           "Correo",
-           key="_correo",
-           placeholder="usuario@ejemplo.com"
-       )
+                   unsafe_allow_html=True)
+        correo = text_input_with_autofill(
+            "Correo",
+            key="_correo",
+            placeholder="usuario@ejemplo.com"
+        )
 
-   with col2:
-       st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
-                  unsafe_allow_html=True)
-       telefono = text_input_with_autofill(
-           "Teléfono",
-           key="_telefono",
-           placeholder="9214447277"
-       )
+    with col2:
+        st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
+                   unsafe_allow_html=True)
+        telefono = text_input_with_autofill(
+            "Teléfono",
+            key="_telefono",
+            placeholder="9214447277"
+        )
 
-   st.subheader("Nivel de Interés")
-   interes_options = [
-       "Solo estoy explorando el valor de mi propiedad por curiosidad.",
-       "Podría considerar vender/alquilar en el futuro.",
-       "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
-       "Estoy buscando activamente vender/alquilar mi propiedad.",
-       "Necesito vender/alquilar mi propiedad lo antes posible."
-   ]
-   
-   interes_index = 0
-   if st.session_state.get('interes_venta') in interes_options:
-       interes_index = interes_options.index(st.session_state.interes_venta)
-   
-   interes_venta = st.radio(
-       "",
-       options=interes_options,
-       index=interes_index,
-       label_visibility="collapsed"
-   )
-   if interes_venta:
-       st.session_state.interes_venta = interes_venta
-       logger.debug(f"Updated interes_venta to: {interes_venta}")
+    st.subheader("Nivel de Interés")
+    interes_options = [
+        "Solo estoy explorando el valor de mi propiedad por curiosidad.",
+        "Podría considerar vender/alquilar en el futuro.",
+        "Estoy interesado/a en vender/alquilar, pero no tengo prisa.",
+        "Estoy buscando activamente vender/alquilar mi propiedad.",
+        "Necesito vender/alquilar mi propiedad lo antes posible."
+    ]
+    
+    interes_index = 0
+    if st.session_state.get('interes_venta') in interes_options:
+        interes_index = interes_options.index(st.session_state.interes_venta)
+    
+    interes_venta = st.radio(
+        "",
+        options=interes_options,
+        index=interes_index,
+        label_visibility="collapsed"
+    )
+    if interes_venta:
+        st.session_state.interes_venta = interes_venta
+        logger.debug(f"Updated interes_venta to: {interes_venta}")
 
-   texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
-   if st.button(texto_boton, type="primary"):
-       if not nombre or not apellido:
-           st.error("Por favor, ingrese su nombre y apellido.")
-       elif not validar_correo(correo):
-           st.error("Por favor, ingrese una dirección de correo electrónico válida.")
-       elif not validar_telefono(telefono):
-           st.error("Por favor, ingrese un número de teléfono válido.")
-       elif not interes_venta:
-           st.error("Por favor, seleccione su nivel de interés.")
-       else:
-           st.session_state.step = 3
-           st.rerun()
+    texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
+    if st.button(texto_boton, type="primary"):
+        if not nombre or not apellido:
+            st.error("Por favor, ingrese su nombre y apellido.")
+        elif not validar_correo(correo):
+            st.error("Por favor, ingrese una dirección de correo electrónico válida.")
+        elif not validar_telefono(telefono):
+            st.error("Por favor, ingrese un número de teléfono válido.")
+        elif not interes_venta:
+            st.error("Por favor, seleccione su nivel de interés.")
+        else:
+            st.session_state.step = 3
+            st.rerun()
     
     # Step 3: Results
 elif st.session_state.step == 3:
