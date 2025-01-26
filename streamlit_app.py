@@ -339,7 +339,7 @@ if st.session_state.step == 1:
             if direccion_seleccionada:
                 st.session_state.direccion_seleccionada = direccion_seleccionada
 
-    # Geocodificación y mapa (no columns, direct placement)
+    # Geocodificación y mapa (minimalist approach)
     if st.session_state.get('direccion_seleccionada'):
         latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
         if latitud and longitud:
@@ -353,10 +353,9 @@ if st.session_state.step == 1:
             if st.session_state.mostrar_mapa:
                 m = folium.Map(location=[latitud, longitud], zoom_start=15)
                 folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
-                st._transparent_write(folium_static(m))  # Using _transparent_write to minimize spacing
+                folium_static(m)
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
-    
     st.subheader("Características de la Propiedad")
 
     st.write("")  # Single line spacing
