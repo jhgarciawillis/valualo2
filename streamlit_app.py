@@ -251,7 +251,7 @@ if 'mostrar_mapa' not in st.session_state:
     st.session_state.mostrar_mapa = False
 if 'last_input' not in st.session_state:
     st.session_state.last_input = ""
-
+    
 # Main UI
 st.title("Estimador de Valor de Propiedades")
 
@@ -268,49 +268,30 @@ with st.container():
     
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
-                                "Ingrese la dirección completa de la propiedad."), 
-                unsafe_allow_html=True)
+                                 "Ingrese la dirección completa de la propiedad."), 
+                   unsafe_allow_html=True)
         
-        # Container for address input and suggestions
-        address_container = st.container()
-        with address_container:
-            # Custom CSS for the container styling
-            st.markdown("""
-            <style>
-            .address-input-container {
-                position: relative;
-                margin-bottom: 1rem;
-            }
-            .suggestions-container {
-                margin-top: -1rem;
-                padding-top: 0;
-            }
-            div[data-baseweb="select"] {
-                margin-top: -1rem;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+        # Text input for address with debouncing
+        current_input = st.text_input("", 
+                                    key="entrada_direccion",
+                                    placeholder="Calle Principal 123, Ciudad de México")
+        
+        # Check if input has changed and has at least 3 characters
+        if current_input != st.session_state.last_input and len(current_input) >= 3:
+            st.session_state.last_input = current_input
+            st.session_state.sugerencias = obtener_sugerencias_direccion(current_input)
             
-            # Text input and suggestions in the same container
-            with st.container():
-                current_input = st.text_input("", 
-                                            key="entrada_direccion",
-                                            placeholder="Calle Principal 123, Ciudad de México")
-                
-                if current_input != st.session_state.last_input and len(current_input) >= 3:
-                    st.session_state.last_input = current_input
-                    st.session_state.sugerencias = obtener_sugerencias_direccion(current_input)
-                
-                if st.session_state.sugerencias:
-                    direccion_seleccionada = st.selectbox(
-                        "",
-                        options=st.session_state.sugerencias,
-                        key="direccion_dropdown",
-                        label_visibility="collapsed"
-                    )
-                    if direccion_seleccionada:
-                        st.session_state.direccion_seleccionada = direccion_seleccionada
-                        
+        # Dropdown for suggestions - show immediately if we have suggestions
+        if st.session_state.sugerencias:
+            direccion_seleccionada = st.selectbox(
+                "Sugerencias de direcciones:",
+                options=st.session_state.sugerencias,
+                key="direccion_dropdown",
+                label_visibility="collapsed"
+            )
+            if direccion_seleccionada:
+                st.session_state.direccion_seleccionada = direccion_seleccionada
+
     # Geocodificación y mapa
     latitud, longitud = None, None
     if st.session_state.direccion_seleccionada:
