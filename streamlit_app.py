@@ -347,17 +347,20 @@ if st.session_state.step == 1:
             st.session_state.longitud = longitud
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
             
-            left_col, right_col = st.columns([1, 3])
-            with left_col:
-                if st.button("Mostrar/Ocultar Mapa"):
-                    st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
-                
-                if st.session_state.get('mostrar_mapa', False):
-                    m = folium.Map(location=[latitud, longitud], zoom_start=15, width=300, height=200)
-                    folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
-                    folium_static(m)
+            if st.button("Mostrar/Ocultar Mapa"):
+                st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
+            
+            if st.session_state.get('mostrar_mapa', False):
+                m = folium.Map(location=[latitud, longitud], zoom_start=15, width=300, height=200)
+                folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
+                folium_static(m)
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
+
+    st.write("")  # Single line spacing
+    
+    # Property details
+    st.subheader("Características de la Propiedad")
 
     # Property details
     st.subheader("Características de la Propiedad")
