@@ -236,10 +236,6 @@ if 'sugerencias' not in st.session_state:
    st.session_state.sugerencias = []
 if 'direccion_seleccionada' not in st.session_state:
    st.session_state.direccion_seleccionada = ""
-if 'mostrar_mapa' not in st.session_state:
-   st.session_state.mostrar_mapa = False
-if 'last_input' not in st.session_state:
-   st.session_state.last_input = ""
 if 'step' not in st.session_state:
    st.session_state.step = 1
 if 'tipo_propiedad' not in st.session_state:
@@ -256,6 +252,7 @@ if 'latitud' not in st.session_state:
    st.session_state.latitud = None
 if 'longitud' not in st.session_state:
    st.session_state.longitud = None
+# Contact info for Google Sheets
 if 'nombre' not in st.session_state:
    st.session_state.nombre = ""
 if 'apellido' not in st.session_state:
@@ -467,17 +464,26 @@ elif st.session_state.step == 2:
 # Step 3: Results
 elif st.session_state.step == 3:
    st.subheader("Resultados")
+   
+   # Load models based on final property type
    modelos = cargar_modelos(st.session_state.tipo_propiedad)
    
    with st.spinner('Calculando...'):
-       datos_procesados = preprocesar_datos(st.session_state.latitud, st.session_state.longitud, 
-                                          st.session_state.terreno, st.session_state.construccion, 
-                                          st.session_state.habitaciones, st.session_state.banos, 
-                                          modelos)
+       # Use data from session state for prediction
+       datos_procesados = preprocesar_datos(
+           st.session_state.latitud, 
+           st.session_state.longitud, 
+           st.session_state.terreno, 
+           st.session_state.construccion, 
+           st.session_state.habitaciones, 
+           st.session_state.banos, 
+           modelos
+       )
+       
        if datos_procesados is not None:
            precio, precio_min, precio_max = predecir_precio(datos_procesados, modelos)
            if precio is not None:
-               # Save to Google Sheets
+               # Save to Google Sheets with all required data
                data = {
                    'tipo_propiedad': st.session_state.tipo_propiedad,
                    'direccion': st.session_state.direccion_seleccionada,
