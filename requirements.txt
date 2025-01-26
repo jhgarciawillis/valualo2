@@ -1,0 +1,11 @@
+streamlit==1.37.0
+pandas==2.2.2
+numpy==2.0.1
+joblib==1.4.2
+geopy==2.4.1
+folium==0.17.0
+streamlit-folium==0.22.0
+plotly==5.23.0
+scikit-learn==1.5.1
+google-auth==2.37.0
+google-api-python-client==2.156.0
