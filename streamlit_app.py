@@ -339,7 +339,7 @@ if st.session_state.step == 1:
             if direccion_seleccionada:
                 st.session_state.direccion_seleccionada = direccion_seleccionada
 
-    # Geocodificación y mapa (minimalist approach)
+    # Geocodificación y mapa
     if st.session_state.get('direccion_seleccionada'):
         latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
         if latitud and longitud:
@@ -347,13 +347,9 @@ if st.session_state.step == 1:
             st.session_state.longitud = longitud
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
             
-            if st.button("Mostrar/Ocultar Mapa"):
-                st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
-            
-            if st.session_state.mostrar_mapa:
-                m = folium.Map(location=[latitud, longitud], zoom_start=15)
-                folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
-                folium_static(m)
+            m = folium.Map(location=[latitud, longitud], zoom_start=15)
+            folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
+            folium_static(m)
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
     
@@ -472,26 +468,19 @@ elif st.session_state.step == 2:
        label_visibility="collapsed"
    )
 
-   col1, col2 = st.columns(2)
-   with col1:
-       if st.button("Anterior"):
-           st.session_state.step = 1
+   texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
+   if st.button(texto_boton, type="primary"):
+       if not nombre or not apellido:
+           st.error("Por favor, ingrese su nombre y apellido.")
+       elif not validar_correo(correo):
+           st.error("Por favor, ingrese una dirección de correo electrónico válida.")
+       elif not validar_telefono(telefono):
+           st.error("Por favor, ingrese un número de teléfono válido.")
+       elif not interes_venta:
+           st.error("Por favor, seleccione su nivel de interés.")
+       else:
+           st.session_state.step = 3
            st.rerun()
-   
-   with col2:
-       texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
-       if st.button(texto_boton, type="primary"):
-           if not nombre or not apellido:
-               st.error("Por favor, ingrese su nombre y apellido.")
-           elif not validar_correo(correo):
-               st.error("Por favor, ingrese una dirección de correo electrónico válida.")
-           elif not validar_telefono(telefono):
-               st.error("Por favor, ingrese un número de teléfono válido.")
-           elif not interes_venta:
-               st.error("Por favor, seleccione su nivel de interés.")
-           else:
-               st.session_state.step = 3
-               st.rerun()
 
 # Step 3: Results
 elif st.session_state.step == 3:
