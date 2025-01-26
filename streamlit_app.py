@@ -295,97 +295,105 @@ st.markdown("""
 
 # Step 1: Property Details
 if st.session_state.step == 1:
-   st.subheader("Detalles de la Propiedad")
-   
-   col1, col2 = st.columns(2)
-   
-   with col1:
-       st.markdown(create_tooltip("Tipo de Propiedad", 
-                                "Seleccione si es una casa en venta o un departamento en alquiler."), 
-                  unsafe_allow_html=True)
-       tipo_propiedad = st.selectbox("", ["Casa", "Departamento"])
-       st.session_state.tipo_propiedad = tipo_propiedad
-       modelos = cargar_modelos(tipo_propiedad)
-   
-   with col2:
-       st.markdown(create_tooltip("Dirección de la Propiedad", 
-                                "Ingrese la dirección completa de la propiedad."), 
-                  unsafe_allow_html=True)
-       
-       current_input = st.text_input("", 
-                                   key="entrada_direccion",
-                                   placeholder="Calle Principal 123, Ciudad de México")
-       
-       if current_input != st.session_state.last_input and len(current_input) >= 3:
-           st.session_state.last_input = current_input
-           st.session_state.sugerencias = obtener_sugerencias_direccion(current_input)
-           
-       if st.session_state.sugerencias:
-           direccion_seleccionada = st.selectbox(
-               "Sugerencias de direcciones:",
-               options=st.session_state.sugerencias,
-               key="direccion_dropdown",
-               label_visibility="collapsed"
-           )
-           if direccion_seleccionada:
-               st.session_state.direccion_seleccionada = direccion_seleccionada
+    st.subheader("Detalles de la Propiedad")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(create_tooltip("Tipo de Propiedad", 
+                                 "Seleccione si es una casa en venta o un departamento en alquiler."), 
+                   unsafe_allow_html=True)
+        tipo_propiedad = st.selectbox("Tipo de Propiedad", ["Casa", "Departamento"], 
+                                    key="tipo_propiedad_select",
+                                    label_visibility="collapsed")
+        modelos = cargar_modelos(tipo_propiedad)
+    
+    with col2:
+        st.markdown(create_tooltip("Dirección de la Propiedad", 
+                                 "Ingrese la dirección completa de la propiedad."), 
+                   unsafe_allow_html=True)
+        
+        current_input = st.text_input("Dirección", 
+                                    key="entrada_direccion",
+                                    placeholder="Calle Principal 123, Ciudad de México",
+                                    label_visibility="collapsed")
+        
+        if current_input != st.session_state.last_input and len(current_input) >= 3:
+            st.session_state.last_input = current_input
+            st.session_state.sugerencias = obtener_sugerencias_direccion(current_input)
+            
+        if st.session_state.sugerencias:
+            direccion_seleccionada = st.selectbox(
+                "Sugerencias de direcciones",
+                options=st.session_state.sugerencias,
+                key="direccion_dropdown",
+                label_visibility="collapsed"
+            )
+            if direccion_seleccionada:
+                st.session_state.direccion_seleccionada = direccion_seleccionada
 
-   # Geocodificación y mapa
-   if st.session_state.direccion_seleccionada:
-       latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
-       if latitud and longitud:
-           st.session_state.latitud = latitud
-           st.session_state.longitud = longitud
-           st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
-           
-           if st.button("Mostrar/Ocultar Mapa"):
-               st.session_state.mostrar_mapa = not st.session_state.mostrar_mapa
+    # Geocodificación y mapa
+    if st.session_state.direccion_seleccionada:
+        latitud, longitud, ubicacion = geocodificar_direccion(st.session_state.direccion_seleccionada)
+        if latitud and longitud:
+            st.session_state.latitud = latitud
+            st.session_state.longitud = longitud
+            st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
+            
+            if st.button("Mostrar/Ocultar Mapa"):
+                st.session_state.mostrar_mapa = not st.session_state.mostrar_mapa
 
-           if st.session_state.mostrar_mapa:
-               m = folium.Map(location=[latitud, longitud], zoom_start=15)
-               folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
-               folium_static(m)
-       else:
-           st.error("No se pudo geocodificar la dirección seleccionada.")
+            if st.session_state.mostrar_mapa:
+                m = folium.Map(location=[latitud, longitud], zoom_start=15)
+                folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
+                folium_static(m)
+        else:
+            st.error("No se pudo geocodificar la dirección seleccionada.")
 
-   # Property details
-   st.subheader("Características de la Propiedad")
-   col1, col2, col3, col4 = st.columns(4)
+    # Property details
+    st.subheader("Características de la Propiedad")
+    col1, col2, col3, col4 = st.columns(4)
 
-   with col1:
-       st.markdown(create_tooltip("Terreno (m²)", 
-                                "Ingrese el área total del terreno en metros cuadrados."), 
-                  unsafe_allow_html=True)
-       terreno = st.number_input("", min_value=0, step=1, format="%d", key="terreno")
-       st.session_state.terreno = terreno
+    with col1:
+        st.markdown(create_tooltip("Terreno (m²)", 
+                                 "Ingrese el área total del terreno en metros cuadrados."), 
+                   unsafe_allow_html=True)
+        st.number_input("Terreno", min_value=0, step=1, format="%d", 
+                       key="terreno", 
+                       label_visibility="collapsed")
 
-   with col2:
-       st.markdown(create_tooltip("Construcción (m²)", 
-                                "Ingrese el área construida en metros cuadrados."), 
-                  unsafe_allow_html=True)
-       construccion = st.number_input("", min_value=0, step=1, format="%d", key="construccion")
-       st.session_state.construccion = construccion
+    with col2:
+        st.markdown(create_tooltip("Construcción (m²)", 
+                                 "Ingrese el área construida en metros cuadrados."), 
+                   unsafe_allow_html=True)
+        st.number_input("Construcción", min_value=0, step=1, format="%d", 
+                       key="construccion", 
+                       label_visibility="collapsed")
 
-   with col3:
-       st.markdown(create_tooltip("Habitaciones", 
-                                "Ingrese el número total de habitaciones."), 
-                  unsafe_allow_html=True)
-       habitaciones = st.number_input("", min_value=0, step=1, format="%d", key="habitaciones")
-       st.session_state.habitaciones = habitaciones
+    with col3:
+        st.markdown(create_tooltip("Habitaciones", 
+                                 "Ingrese el número total de habitaciones."), 
+                   unsafe_allow_html=True)
+        st.number_input("Habitaciones", min_value=0, step=1, format="%d", 
+                       key="habitaciones", 
+                       label_visibility="collapsed")
 
-   with col4:
-       st.markdown(create_tooltip("Baños", 
-                                "Ingrese el número de baños."), 
-                  unsafe_allow_html=True)
-       banos = st.number_input("", min_value=0.0, step=0.5, format="%.1f", key="banos")
-       st.session_state.banos = banos
+    with col4:
+        st.markdown(create_tooltip("Baños", 
+                                 "Ingrese el número de baños."), 
+                   unsafe_allow_html=True)
+        st.number_input("Baños", min_value=0.0, step=0.5, format="%.1f", 
+                       key="banos", 
+                       label_visibility="collapsed")
 
-   if st.button("Siguiente", type="primary"):
-       if not st.session_state.direccion_seleccionada or not terreno or not construccion or not habitaciones or not banos:
-           st.error("Por favor complete todos los campos antes de continuar.")
-       else:
-           st.session_state.step = 2
-           st.rerun()
+    if st.button("Siguiente", type="primary"):
+        if not st.session_state.direccion_seleccionada:
+            st.error("Por favor seleccione una dirección válida.")
+        elif not st.session_state.terreno or not st.session_state.construccion or not st.session_state.habitaciones or not st.session_state.banos:
+            st.error("Por favor complete todos los campos antes de continuar.")
+        else:
+            st.session_state.step = 2
+            st.rerun()
 
 # Step 2: Contact Information
 elif st.session_state.step == 2:
@@ -394,31 +402,35 @@ elif st.session_state.step == 2:
    col1, col2 = st.columns(2)
    with col1:
        st.markdown(create_tooltip("Nombre", "Ingrese su nombre."), unsafe_allow_html=True)
-       nombre = st.text_input("", key="nombre", placeholder="Ingrese su nombre")
-       st.session_state.nombre = nombre
+       nombre = st.text_input("Nombre", key="nombre", placeholder="Ingrese su nombre", 
+                            value=st.session_state.nombre,
+                            label_visibility="collapsed")
 
    with col2:
        st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
-       apellido = st.text_input("", key="apellido", placeholder="Ingrese su apellido")
-       st.session_state.apellido = apellido
+       apellido = st.text_input("Apellido", key="apellido", placeholder="Ingrese su apellido",
+                              value=st.session_state.apellido,
+                              label_visibility="collapsed")
 
    col1, col2 = st.columns(2)
    with col1:
        st.markdown(create_tooltip("Correo Electrónico", 
                                 "Ingrese su dirección de correo electrónico."), 
                   unsafe_allow_html=True)
-       correo = st.text_input("", key="correo", placeholder="usuario@ejemplo.com")
-       st.session_state.correo = correo
+       correo = st.text_input("Correo", key="correo", placeholder="usuario@ejemplo.com",
+                            value=st.session_state.correo,
+                            label_visibility="collapsed")
 
    with col2:
        st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
                   unsafe_allow_html=True)
-       telefono = st.text_input("", key="telefono", placeholder="9214447277")
-       st.session_state.telefono = telefono
+       telefono = st.text_input("Teléfono", key="telefono", placeholder="9214447277",
+                              value=st.session_state.telefono,
+                              label_visibility="collapsed")
 
    st.subheader("Nivel de Interés")
    interes_venta = st.selectbox(
-       "",
+       "Nivel de Interés",
        [
            "Solo estoy explorando el valor de mi propiedad por curiosidad.",
            "Podría considerar vender/alquilar en el futuro.",
@@ -426,9 +438,9 @@ elif st.session_state.step == 2:
            "Estoy buscando activamente vender/alquilar mi propiedad.",
            "Necesito vender/alquilar mi propiedad lo antes posible."
        ],
-       key="interes_venta"
+       key="interes_venta",
+       label_visibility="collapsed"
    )
-   st.session_state.interes_venta = interes_venta
 
    col1, col2 = st.columns(2)
    with col1:
@@ -472,7 +484,7 @@ elif st.session_state.step == 3:
                    'construccion': st.session_state.construccion,
                    'habitaciones': st.session_state.habitaciones,
                    'banos': st.session_state.banos,
-                   'nombre': st.session_state.nombre,
+                   'nombre': f"{st.session_state.nombre} {st.session_state.apellido}",
                    'correo': st.session_state.correo,
                    'telefono': st.session_state.telefono,
                    'interes_venta': st.session_state.interes_venta,
