@@ -141,10 +141,10 @@ def cargar_modelos(tipo_propiedad):
     try:
         for nombre_modelo, nombre_archivo in modelos_requeridos.items():
             ruta_archivo = os.path.join(directorio_actual, f"{prefijo}{nombre_archivo}")
-            logger.debug(f"Intentando cargar archivo: {ruta_archivo}")  # Added logging
+            logger.debug(f"Intentando cargar archivo: {ruta_archivo}")
             if os.path.exists(ruta_archivo):
                 modelos[nombre_modelo] = joblib.load(ruta_archivo)
-                logger.debug(f"Archivo cargado exitosamente: {ruta_archivo}")  # Added logging
+                logger.debug(f"Archivo cargado exitosamente: {ruta_archivo}")
             else:
                 logger.error(f"Archivo de modelo no encontrado: {ruta_archivo}")
                 raise FileNotFoundError(f"Archivo de modelo no encontrado: {ruta_archivo}")
@@ -152,20 +152,6 @@ def cargar_modelos(tipo_propiedad):
         logger.error(f"Error al cargar los modelos: {str(e)}")
         st.error(f"Error al cargar los modelos: {str(e)}. Por favor contacte al soporte.")
     return modelos
-
-# Initialize geocoder
-geolocalizador = Nominatim(user_agent="aplicacion_propiedades")
-
-def geocodificar_direccion(direccion):
-    logger.debug(f"Intentando geocodificar dirección: {direccion}")
-    try:
-        ubicacion = geolocalizador.geocode(direccion)
-        if ubicacion:
-            logger.debug(f"Geocodificación exitosa: {ubicacion.latitude}, {ubicacion.longitude}")
-            return ubicacion.latitude, ubicacion.longitude, ubicacion
-    except (GeocoderTimedOut, GeocoderUnavailable):
-        logger.warning("Servicio de geocodificación no disponible")
-    return None, None, None
 
 def obtener_sugerencias_direccion(consulta):
     logger.debug(f"Obteniendo sugerencias para: {consulta}")
