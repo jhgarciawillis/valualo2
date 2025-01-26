@@ -355,7 +355,7 @@ if st.session_state.step == 1:
             st.error("Por favor complete todos los campos antes de continuar.")
         else:
             st.session_state.step = 2
-            st.experimental_rerun()
+            st.rerun()
 
 # Step 2: Contact Information
 elif st.session_state.step == 2:
@@ -399,7 +399,7 @@ elif st.session_state.step == 2:
     with col1:
         if st.button("Anterior"):
             st.session_state.step = 1
-            st.experimental_rerun()
+            st.rerun()
     
     with col2:
         texto_boton = "Estimar Valor" if tipo_propiedad == "Casa" else "Estimar Renta"
@@ -414,7 +414,7 @@ elif st.session_state.step == 2:
                 st.error("Por favor, seleccione su nivel de interés.")
             else:
                 st.session_state.step = 3
-                st.experimental_rerun()
+                st.rerun()
 
 # Step 3: Results
 elif st.session_state.step == 3:
@@ -472,7 +472,7 @@ elif st.session_state.step == 3:
                 if st.button("Nueva Estimación"):
                     for key in st.session_state.keys():
                         del st.session_state[key]
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.error("Error al calcular el precio. Por favor, intente nuevamente.")
         else:
