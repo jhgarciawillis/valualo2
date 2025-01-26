@@ -341,15 +341,23 @@ if st.session_state.step == 1:
         if latitud and longitud:
             st.session_state.latitud = latitud
             st.session_state.longitud = longitud
+            
+            # Confirmation message with green background
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
             
-            if st.button("Mostrar/Ocultar Mapa", key="toggle_map"):
-                st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
-
+            # Map toggle button and container
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if st.button("Mostrar/Ocultar Mapa", key="toggle_map"):
+                    st.session_state.mostrar_mapa = not st.session_state.get('mostrar_mapa', False)
+            
+            # Map display with clear spacing
             if st.session_state.get('mostrar_mapa', False):
+                st.write("")  # Add some spacing
                 m = folium.Map(location=[latitud, longitud], zoom_start=15)
                 folium.Marker([latitud, longitud], popup=st.session_state.direccion_seleccionada).add_to(m)
                 folium_static(m)
+                st.write("")  # Add some spacing after map
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
 
@@ -409,6 +417,8 @@ if st.session_state.step == 1:
             label_visibility="collapsed"
         )
 
+    # Navigation buttons
+    st.write("")  # Add spacing before buttons
     if st.button("Siguiente", type="primary"):
         if not st.session_state.get('direccion_seleccionada'):
             st.error("Por favor seleccione una dirección válida.")
