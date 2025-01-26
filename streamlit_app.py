@@ -177,7 +177,6 @@ def obtener_sugerencias_direccion(consulta):
         logger.warning("Servicio de geocodificación no disponible")
     return []
 
-
 def agregar_caracteristica_grupo(latitud, longitud, modelos):
     logger.debug(f"Agregando característica de grupo para: {latitud}, {longitud}")
     try:
@@ -218,7 +217,6 @@ def predecir_precio(datos_procesados, modelos):
         precio_bruto = modelos['modelo'].predict(datos_procesados)[0]
         logger.debug(f"Precio bruto predicho: {precio_bruto}")
         
-        # Different scaling for each property type
         if st.session_state.tipo_propiedad == "Casa":
             precio_redondeado = math.floor(precio_bruto / 1000) * 1000
         else:  # Departamento
@@ -253,9 +251,6 @@ def on_address_change():
     else:
         st.session_state.direccion_seleccionada = ""
 
-# Main UI
-st.title("Estimador de Valor de Propiedades")
-
 # Initialize session state
 if 'entrada_direccion' not in st.session_state:
    st.session_state.entrada_direccion = ""
@@ -279,7 +274,6 @@ if 'latitud' not in st.session_state:
    st.session_state.latitud = None
 if 'longitud' not in st.session_state:
    st.session_state.longitud = None
-# Contact info for Google Sheets
 if 'nombre' not in st.session_state:
    st.session_state.nombre = ""
 if 'apellido' not in st.session_state:
@@ -290,6 +284,9 @@ if 'telefono' not in st.session_state:
    st.session_state.telefono = ""
 if 'interes_venta' not in st.session_state:
    st.session_state.interes_venta = ""
+
+# Main UI
+st.title("Estimador de Valor de Propiedades")
 
 # Welcome message
 st.markdown("""
@@ -320,6 +317,7 @@ if st.session_state.step == 1:
             label_visibility="collapsed"
         )
         modelos = cargar_modelos(st.session_state.tipo_propiedad)
+        logger.debug(f"Tipo de propiedad seleccionado: {st.session_state.tipo_propiedad}")
     
     with col2:
         st.markdown(create_tooltip("Dirección de la Propiedad", 
@@ -358,7 +356,7 @@ if st.session_state.step == 1:
             st.success(f"Ubicación encontrada: {st.session_state.direccion_seleccionada}")
         else:
             st.error("No se pudo geocodificar la dirección seleccionada.")
-            
+    
     # Property details
     st.subheader("Características de la Propiedad")
     col1, col2, col3, col4 = st.columns(4)
@@ -367,53 +365,67 @@ if st.session_state.step == 1:
         st.markdown(create_tooltip("Terreno (m²)", 
                                  "Ingrese el área total del terreno en metros cuadrados."), 
                    unsafe_allow_html=True)
-        st.number_input(
+        terreno = st.number_input(
             "Metros cuadrados de terreno",
             min_value=0,
             step=1,
             format="%d",
             key="terreno",
+            value=st.session_state.get('terreno', 0),
             label_visibility="collapsed"
         )
+        st.session_state.terreno = terreno
 
     with col2:
         st.markdown(create_tooltip("Construcción (m²)", 
                                  "Ingrese el área construida en metros cuadrados."), 
                    unsafe_allow_html=True)
-        st.number_input(
+        construccion = st.number_input(
             "Metros cuadrados de construcción",
             min_value=0,
             step=1,
             format="%d",
             key="construccion",
+            value=st.session_state.get('construccion', 0),
             label_visibility="collapsed"
         )
+        st.session_state.construccion = construccion
 
     with col3:
         st.markdown(create_tooltip("Habitaciones", 
                                  "Ingrese el número total de habitaciones."), 
                    unsafe_allow_html=True)
-        st.number_input(
+        habitaciones = st.number_input(
             "Número de habitaciones",
             min_value=0,
             step=1,
             format="%d",
             key="habitaciones",
+            value=st.session_state.get('habitaciones', 0),
             label_visibility="collapsed"
         )
+        st.session_state.habitaciones = habitaciones
 
     with col4:
         st.markdown(create_tooltip("Baños", 
                                  "Ingrese el número de baños."), 
                    unsafe_allow_html=True)
-        st.number_input(
+        banos = st.number_input(
             "Número de baños",
             min_value=0.0,
             step=0.5,
             format="%.1f",
             key="banos",
+            value=st.session_state.get('banos', 0.0),
             label_visibility="collapsed"
         )
+        st.session_state.banos = banos
+
+    logger.debug(f"Valores guardados en Step 1:")
+    logger.debug(f"Terreno: {st.session_state.terreno}")
+    logger.debug(f"Construccion: {st.session_state.construccion}")
+    logger.debug(f"Habitaciones: {st.session_state.habitaciones}")
+    logger.debug(f"Baños: {st.session_state.banos}")
 
     # Navigation buttons
     st.write("")  # Add spacing before buttons
@@ -437,12 +449,14 @@ elif st.session_state.step == 2:
        nombre = st.text_input("Nombre", key="nombre", placeholder="Ingrese su nombre", 
                             value=st.session_state.nombre,
                             label_visibility="collapsed")
+       st.session_state.nombre = nombre
 
    with col2:
        st.markdown(create_tooltip("Apellido", "Ingrese su apellido."), unsafe_allow_html=True)
        apellido = st.text_input("Apellido", key="apellido", placeholder="Ingrese su apellido",
                               value=st.session_state.apellido,
                               label_visibility="collapsed")
+       st.session_state.apellido = apellido
 
    col1, col2 = st.columns(2)
    with col1:
@@ -452,6 +466,7 @@ elif st.session_state.step == 2:
        correo = st.text_input("Correo", key="correo", placeholder="usuario@ejemplo.com",
                             value=st.session_state.correo,
                             label_visibility="collapsed")
+       st.session_state.correo = correo
 
    with col2:
        st.markdown(create_tooltip("Teléfono", "Ingrese su número de teléfono."), 
@@ -459,10 +474,11 @@ elif st.session_state.step == 2:
        telefono = st.text_input("Teléfono", key="telefono", placeholder="9214447277",
                               value=st.session_state.telefono,
                               label_visibility="collapsed")
+       st.session_state.telefono = telefono
 
    st.subheader("Nivel de Interés")
-   interes_venta = st.selectbox(
-       "Nivel de Interés",
+   interes_venta = st.radio(
+       "",
        [
            "Solo estoy explorando el valor de mi propiedad por curiosidad.",
            "Podría considerar vender/alquilar en el futuro.",
@@ -473,6 +489,7 @@ elif st.session_state.step == 2:
        key="interes_venta",
        label_visibility="collapsed"
    )
+   st.session_state.interes_venta = interes_venta
 
    texto_boton = "Estimar Valor" if st.session_state.tipo_propiedad == "Casa" else "Estimar Renta"
    if st.button(texto_boton, type="primary"):
@@ -490,74 +507,81 @@ elif st.session_state.step == 2:
 
 # Step 3: Results
 elif st.session_state.step == 3:
-   st.subheader("Resultados")
-   
-   # Load models based on final property type
-   modelos = cargar_modelos(st.session_state.tipo_propiedad)
-   
-   with st.spinner('Calculando...'):
-       # Use data from session state for prediction
-       datos_procesados = preprocesar_datos(
-           st.session_state.latitud, 
-           st.session_state.longitud, 
-           st.session_state.terreno, 
-           st.session_state.construccion, 
-           st.session_state.habitaciones, 
-           st.session_state.banos, 
-           modelos
-       )
-       
-       if datos_procesados is not None:
-           precio, precio_min, precio_max = predecir_precio(datos_procesados, modelos)
-           if precio is not None:
-               # Save to Google Sheets with all required data
-               data = {
-                   'tipo_propiedad': st.session_state.tipo_propiedad,
-                   'direccion': st.session_state.direccion_seleccionada,
-                   'terreno': st.session_state.terreno,
-                   'construccion': st.session_state.construccion,
-                   'habitaciones': st.session_state.habitaciones,
-                   'banos': st.session_state.banos,
-                   'nombre': f"{st.session_state.nombre} {st.session_state.apellido}",
-                   'correo': st.session_state.correo,
-                   'telefono': st.session_state.telefono,
-                   'interes_venta': st.session_state.interes_venta,
-                   'precio_estimado': precio
-               }
-               
-               save_to_sheets(data)
-               
-               col1, col2 = st.columns(2)
-               
-               with col1:
-                   resultado_texto = "Valor Estimado" if st.session_state.tipo_propiedad == "Casa" else "Renta Mensual Estimada"
-                   st.metric(resultado_texto, f"${precio:,}")
-                   
-               with col2:
-                   st.write("Rango Estimado:")
-                   st.write(f"Mínimo: ${precio_min:,}")
-                   st.write(f"Máximo: ${precio_max:,}")
+    st.subheader("Resultados")
+    
+    # Load models based on final property type
+    modelos = cargar_modelos(st.session_state.tipo_propiedad)
+    
+    with st.spinner('Calculando...'):
+        logger.debug("Valores recuperados en Step 3:")
+        logger.debug(f"Tipo de propiedad: {st.session_state.tipo_propiedad}")
+        logger.debug(f"Terreno: {st.session_state.terreno}")
+        logger.debug(f"Construccion: {st.session_state.construccion}")
+        logger.debug(f"Habitaciones: {st.session_state.habitaciones}")
+        logger.debug(f"Baños: {st.session_state.banos}")
+        
+        # Use data from session state for prediction
+        datos_procesados = preprocesar_datos(
+            st.session_state.latitud, 
+            st.session_state.longitud, 
+            st.session_state.terreno, 
+            st.session_state.construccion, 
+            st.session_state.habitaciones, 
+            st.session_state.banos, 
+            modelos
+        )
+        
+        if datos_procesados is not None:
+            precio, precio_min, precio_max = predecir_precio(datos_procesados, modelos)
+            if precio is not None:
+                # Save to Google Sheets with all required data
+                data = {
+                    'tipo_propiedad': st.session_state.tipo_propiedad,
+                    'direccion': st.session_state.direccion_seleccionada,
+                    'terreno': st.session_state.terreno,
+                    'construccion': st.session_state.construccion,
+                    'habitaciones': st.session_state.habitaciones,
+                    'banos': st.session_state.banos,
+                    'nombre': f"{st.session_state.nombre} {st.session_state.apellido}",
+                    'correo': st.session_state.correo,
+                    'telefono': st.session_state.telefono,
+                    'interes_venta': st.session_state.interes_venta,
+                    'precio_estimado': precio
+                }
+                
+                save_to_sheets(data)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    resultado_texto = "Valor Estimado" if st.session_state.tipo_propiedad == "Casa" else "Renta Mensual Estimada"
+                    st.metric(resultado_texto, f"${precio:,}")
+                    
+                with col2:
+                    st.write("Rango Estimado:")
+                    st.write(f"Mínimo: ${precio_min:,}")
+                    st.write(f"Máximo: ${precio_max:,}")
 
-               fig = go.Figure(go.Bar(
-                   x=['Mínimo', 'Estimado', 'Máximo'],
-                   y=[precio_min, precio, precio_max],
-                   text=[f'${x:,}' for x in [precio_min, precio, precio_max]],
-                   textposition='auto',
-                   marker_color=[SECONDARY_COLOR, PRIMARY_COLOR, SECONDARY_COLOR]
-               ))
-               
-               fig.update_layout(
-                   title='Rango de Precio',
-                   yaxis_title='Precio (MXN)',
-                   showlegend=False
-               )
-               st.plotly_chart(fig)
+                fig = go.Figure(go.Bar(
+                    x=['Mínimo', 'Estimado', 'Máximo'],
+                    y=[precio_min, precio, precio_max],
+                    text=[f'${x:,}' for x in [precio_min, precio, precio_max]],
+                    textposition='auto',
+                    marker_color=[SECONDARY_COLOR, PRIMARY_COLOR, SECONDARY_COLOR]
+                ))
+                
+                fig.update_layout(
+                    title='Rango de Precio',
+                    yaxis_title='Precio (MXN)',
+                    showlegend=False
+                )
+                st.plotly_chart(fig)
 
-               if st.button("Nueva Estimación"):
-                   for key in st.session_state.keys():
-                       del st.session_state[key]
-                   st.rerun()
-           else:
-               st.error("Error al calcular el precio. Por favor, intente nuevamente.")
-       else:
-           st.error("Error al procesar los datos. Por favor, verifique la información ingresada.")
+                if st.button("Nueva Estimación"):
+                    for key in st.session_state.keys():
+                        del st.session_state[key]
+                    st.rerun()
+            else:
+                st.error("Error al calcular el precio. Por favor, intente nuevamente.")
+        else:
+            st.error("Error al procesar los datos. Por favor, verifique la información ingresada.")
